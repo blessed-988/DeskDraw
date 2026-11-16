@@ -11,12 +11,16 @@ namespace DeskDraw
 {
     public partial class MainWindow : Window
     {
-        private readonly Screen _screen;
+        private Screen _screen;
 
-        public MainWindow(Screen screen)
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        public void SetScreen(Screen screen)
         {
             _screen = screen;
-            InitializeComponent();
             PositionWindow();
             LoadWallpaper();
         }
@@ -69,6 +73,12 @@ namespace DeskDraw
             if (e.Key == Key.Escape)
                 Close();
             base.OnKeyDown(e);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            App.ShutdownAll();
+            base.OnClosed(e);
         }
     }
 

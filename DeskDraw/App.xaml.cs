@@ -17,9 +17,18 @@ namespace DeskDraw
 
             foreach (var screen in screens)
             {
-                var window = new MainWindow(screen);
+                var window = new MainWindow();
+                window.SetScreen(screen);
                 window.Show();
                 _windows.Add(window);
+            }
+        }
+
+        public static void ShutdownAll()
+        {
+            foreach (var w in _windows)
+            {
+                w.Dispatcher.Invoke(() => w.Close());
             }
         }
     }
