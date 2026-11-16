@@ -5,64 +5,72 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Forms;
 
-namespace DeskDraw // Обрати внимание: здесь должно быть имя твоего проекта!
+namespace DeskDraw
 {
     public partial class MainWindow : Window
     {
-        public MainWindow()
+        private readonly Screen _screen;
+
+        public MainWindow(Screen screen)
         {
+            _screen = screen;
             InitializeComponent();
-            LoadWallpaper(); // Вызываем загрузку обоев при старте
+            PositionWindow();
+            LoadWallpaper();
+        }
+
+        private void PositionWindow()
+        {
+            Left = _screen.Bounds.X;
+            Top = _screen.Bounds.Y;
+            Width = _screen.Bounds.Width;
+            Height = _screen.Bounds.Height;
+
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            Topmost = true;
+            ShowInTaskbar = false;
         }
 
         private void LoadWallpaper()
         {
             try
             {
-                // Создаём объект для работы с обоями Windows
                 var wallpaperManager = (IDesktopWallpaper)new DesktopWallpaper();
-
-                // Получаем путь к файлу обоев (null означает "все мониторы сразу")
                 string wallpaperPath = wallpaperManager.GetWallpaper(null);
 
-                // Если путь пустой (например, стоят сплошные обои), ставим чёрный фон
                 if (string.IsNullOrEmpty(wallpaperPath) || !File.Exists(wallpaperPath))
                 {
                     MainGrid.Background = Brushes.Black;
                     return;
                 }
 
-                // Загружаем картинку и ставим её на фон
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.UriSource = new Uri(wallpaperPath);
-                bitmap.CacheOption = BitmapCacheOption.OnLoad; // Важно: чтобы файл не блокировался
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.EndInit();
 
-                // Создаём кисть и растягиваем её как "Заполнить"
                 var brush = new ImageBrush(bitmap);
-                brush.Stretch = Stretch.UniformToFill; // Аналог режима "Заполнить"
+                brush.Stretch = Stretch.UniformToFill;
                 MainGrid.Background = brush;
             }
             catch (Exception ex)
             {
-                // Если что-то пошло не так, покажем ошибку
-                MessageBox.Show($"Не удалось загрузить обои: {ex.Message}");
+                System.Windows.MessageBox.Show($"Ошибка: {ex.Message}");
                 MainGrid.Background = Brushes.DarkSlateGray;
             }
         }
 
-        // Закрытие по Esc
-        protected override void OnKeyDown(KeyEventArgs e)
+        protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key == Key.Escape)
                 Close();
             base.OnKeyDown(e);
         }
     }
-
-    // --- Вспомогательные классы для работы с системным API (можно не трогать) ---
 
     [ComImport]
     [Guid("B92B56A9-8B55-4E14-9A89-0199BBB6F93B")]
