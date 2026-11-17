@@ -2,45 +2,201 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid x:Name="MainGrid">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="180" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="52" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <Border Grid.Column="0"
-                Background="#CC000000"
-                CornerRadius="8">
-            <StackPanel Margin="12">
-                <TextBlock Text="Кисть"
-                           FontSize="16"
-                           FontWeight="Bold"
-                           Foreground="White"
-                           Margin="0,0,0,16" />
+        <!-- Toolbar -->
+        <Border Grid.Row="0"
+                Background="#DD1A1A1A"
+                BorderBrush="#44FFFFFF"
+                BorderThickness="0,0,0,1">
+            <Grid Margin="12,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                <TextBlock Text="Толщина"
-                           FontSize="13"
-                           Foreground="#CCCCCC"
-                           Margin="0,0,0,4" />
+                <!-- Brush Icon + Tool Name -->
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Border Width="32" Height="32"
+                            Background="#33FFFFFF"
+                            CornerRadius="6"
+                            HorizontalAlignment="Center">
+                        <Canvas Width="18" Height="18"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                            <!-- Brush handle -->
+                            <Path Data="M3,15 L8,10 L10,12 L5,17 Z"
+                                  Fill="#FFB74C"
+                                  Stretch="Uniform"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  RenderTransformOrigin="0.5,0.5">
+                                <Path.RenderTransform>
+                                    <RotateTransform Angle="-45" />
+                                </Path.RenderTransform>
+                            </Path>
+                            <!-- Brush tip -->
+                            <Ellipse Canvas.Left="8" Canvas.Top="1"
+                                     Width="5" Height="5"
+                                     Fill="#FFF5E6"
+                                     RenderTransformOrigin="0.5,0.5">
+                                <Ellipse.RenderTransform>
+                                    <RotateTransform Angle="-45" />
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                        </Canvas>
+                    </Border>
+                    <TextBlock Text="  Кисть"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="#EEEEEE"
+                               VerticalAlignment="Center" />
+                </StackPanel>
 
-                <TextBlock x:Name="ThicknessValue"
-                           Text="5"
-                           FontSize="13"
-                           Foreground="White"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,8" />
+                <!-- Divider -->
+                <Border Grid.Column="1"
+                        Width="1"
+                        Background="#33FFFFFF"
+                        Margin="0,8" />
 
-                <Slider x:Name="ThicknessSlider"
-                        Minimum="1"
-                        Maximum="50"
-                        Value="5"
-                        TickFrequency="1"
-                        IsSnapToTickEnabled="True"
-                        Margin="0,0,0,16"
-                        ValueChanged="ThicknessSlider_ValueChanged" />
-            </StackPanel>
+                <!-- Color Palette -->
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="Цвет:"
+                               FontSize="12"
+                               Foreground="#AAAAAA"
+                               VerticalAlignment="Center"
+                               Margin="0,0,6,0" />
+
+                    <!-- Red -->
+                    <Border Width="24" Height="24"
+                            Background="#FF0000"
+                            CornerRadius="50"
+                            Margin="2,0"
+                            Cursor="Hand"
+                            ToolTip="Красный"
+                            BorderThickness="2"
+                            Tag="#FF0000"
+                            MouseLeftButtonDown="ColorDot_Clicked">
+                </Border>
+
+                <!-- Blue -->
+                <Border Width="24" Height="24"
+                        Background="#0066FF"
+                        CornerRadius="50"
+                        Margin="2,0"
+                        Cursor="Hand"
+                        ToolTip="Синий"
+                        Tag="#0066FF"
+                        MouseLeftButtonDown="ColorDot_Clicked">
+                </Border>
+
+                <!-- Green -->
+                <Border Width="24" Height="24"
+                        Background="#00CC44"
+                        CornerRadius="50"
+                        Margin="2,0"
+                        Cursor="Hand"
+                        ToolTip="Зелёный"
+                        Tag="#00CC44"
+                        MouseLeftButtonDown="ColorDot_Clicked">
+                </Border>
+
+                <!-- Black -->
+                <Border Width="24" Height="24"
+                        Background="#1A1A1A"
+                        CornerRadius="50"
+                        Margin="2,0"
+                        Cursor="Hand"
+                        ToolTip="Чёрный"
+                        Tag="#1A1A1A"
+                        MouseLeftButtonDown="ColorDot_Clicked">
+                </Border>
+
+                <!-- White -->
+                <Border Width="24" Height="24"
+                        Background="#F0F0F0"
+                        CornerRadius="50"
+                        Margin="2,0"
+                        Cursor="Hand"
+                        ToolTip="Белый"
+                        BorderThickness="1"
+                        BorderBrush="#666666"
+                        Tag="#F0F0F0"
+                        MouseLeftButtonDown="ColorDot_Clicked">
+                </Border>
+
+                <!-- Yellow -->
+                <Border Width="24" Height="24"
+                        Background="#FFCC00"
+                        CornerRadius="50"
+                        Margin="2,0"
+                        Cursor="Hand"
+                        ToolTip="Жёлтый"
+                        Tag="#FFCC00"
+                        MouseLeftButtonDown="ColorDot_Clicked">
+                </Border>
+                </StackPanel>
+
+                <!-- Divider -->
+                <Border Grid.Column="3"
+                        Width="1"
+                        Background="#33FFFFFF"
+                        Margin="0,8" />
+
+                <!-- Thickness -->
+                <StackPanel Grid.Column="4"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="Размер:"
+                               FontSize="12"
+                               Foreground="#AAAAAA"
+                               VerticalAlignment="Center"
+                               Margin="0,0,6,0" />
+
+                    <TextBlock x:Name="ThicknessValue"
+                               Text="5"
+                               FontSize="13"
+                               Foreground="White"
+                               FontWeight="Medium"
+                               Width="24"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,8,0" />
+
+                    <Slider x:Name="ThicknessSlider"
+                            Width="100"
+                            Minimum="1"
+                            Maximum="50"
+                            Value="5"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            VerticalAlignment="Center"
+                            ValueChanged="ThicknessSlider_ValueChanged" />
+
+                    <!-- Brush Preview -->
+                    <Border Width="40" Height="40"
+                            Margin="10,0,0,0"
+                            Background="#33FFFFFF"
+                            CornerRadius="6"
+                            VerticalAlignment="Center">
+                        <Canvas x:Name="BrushPreview"
+                                Width="40" Height="40" />
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Border>
 
-        <Canvas x:Name="DrawCanvas" Grid.Column="1"
+        <!-- Drawing Canvas -->
+        <Canvas x:Name="DrawCanvas" Grid.Row="1"
                 Background="Transparent" 
                 MouseLeftButtonDown="DrawCanvas_MouseLeftButtonDown"
                 MouseMove="DrawCanvas_MouseMove"

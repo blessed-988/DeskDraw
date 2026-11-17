@@ -18,6 +18,21 @@ namespace DeskDraw
             }
         }
 
+        private static string _colorHex = "#FF0000";
+        public static string ColorHex
+        {
+            get => _colorHex;
+            set
+            {
+                if (_colorHex != value)
+                {
+                    _colorHex = value;
+                    ColorChanged?.Invoke(_colorHex);
+                }
+            }
+        }
+
         public static event Action<double>? ThicknessChanged;
+        public static event Action<string>? ColorChanged;
     }
 }

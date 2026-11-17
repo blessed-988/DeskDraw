@@ -13,14 +13,29 @@ namespace DeskDraw
         {
             base.OnStartup(e);
 
-            var screens = System.Windows.Forms.Screen.AllScreens;
-
-            foreach (var screen in screens)
+            DispatcherUnhandledException += (s, args) =>
             {
-                var window = new MainWindow();
-                window.SetScreen(screen);
-                window.Show();
-                _windows.Add(window);
+                System.Windows.MessageBox.Show($"Критическая ошибка:\n{args.Exception}");
+                args.Handled = true;
+                ShutdownAll();
+            };
+
+            try
+            {
+                var screens = System.Windows.Forms.Screen.AllScreens;
+
+                foreach (var screen in screens)
+                {
+                    var window = new MainWindow();
+                    window.SetScreen(screen);
+                    window.Show();
+                    _windows.Add(window);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Ошибка запуска:\n{ex.Message}\n\n{ex.StackTrace}");
+                Shutdown();
             }
         }
 

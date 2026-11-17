@@ -15,18 +15,78 @@ namespace DeskDraw
         private Screen _screen;
         private bool _isDrawing = false;
         private Point _lastPoint = new Point();
+        private string _selectedHex = "#FF0000";
+        private SolidColorBrush _currentBrush = Brushes.Red;
+
+        public string SelectedHex
+        {
+            get => _selectedHex;
+            set
+            {
+                _selectedHex = value;
+                OnPropertyChanged();
+                UpdateBrush();
+            }
+        }
 
         public MainWindow()
         {
             InitializeComponent();
             BrushSettings.ThicknessChanged += OnThicknessChanged;
+            BrushSettings.ColorChanged += OnColorChanged;
             ThicknessSlider.Value = BrushSettings.Thickness;
             ThicknessValue.Text = ((int)BrushSettings.Thickness).ToString();
+            SelectedHex = BrushSettings.ColorHex;
         }
 
         ~MainWindow()
         {
             BrushSettings.ThicknessChanged -= OnThicknessChanged;
+            BrushSettings.ColorChanged -= OnColorChanged;
+        }
+
+        private void OnColorChanged(string hex)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                SelectedHex = hex;
+            });
+        }
+
+        private void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+        {
+            // Minimal INotifyPropertyChanged stub
+        }
+
+        private void UpdateBrush()
+        {
+            switch (SelectedHex)
+            {
+                case "#FF0000": _currentBrush = Brushes.Red; break;
+                case "#0066FF": _currentBrush = new SolidColorBrush(Color.FromRgb(0, 102, 255)); break;
+                case "#00CC44": _currentBrush = new SolidColorBrush(Color.FromRgb(0, 204, 68)); break;
+                case "#1A1A1A": _currentBrush = Brushes.Black; break;
+                case "#F0F0F0": _currentBrush = Brushes.White; break;
+                case "#FFCC00": _currentBrush = new SolidColorBrush(Color.FromRgb(255, 204, 0)); break;
+                default: _currentBrush = Brushes.Red; break;
+            }
+            UpdateBrushPreview();
+            BrushSettings.ColorHex = SelectedHex;
+        }
+
+        private void UpdateBrushPreview()
+        {
+            if (BrushPreview == null) return;
+            BrushPreview.Children.Clear();
+            var circle = new Ellipse
+            {
+                Width = BrushSettings.Thickness,
+                Height = BrushSettings.Thickness,
+                Fill = _currentBrush,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
+            };
+            BrushPreview.Children.Add(circle);
         }
 
         private void OnThicknessChanged(double thickness)
@@ -35,6 +95,7 @@ namespace DeskDraw
             {
                 ThicknessSlider.Value = thickness;
                 ThicknessValue.Text = ((int)thickness).ToString();
+                UpdateBrushPreview();
             });
         }
 
@@ -99,6 +160,15 @@ namespace DeskDraw
         {
             BrushSettings.Thickness = ThicknessSlider.Value;
             ThicknessValue.Text = ((int)ThicknessSlider.Value).ToString();
+            UpdateBrushPreview();
+        }
+
+        private void ColorDot_Clicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Border border && border.Tag is string hex)
+            {
+                SelectedHex = hex;
+            }
         }
 
         private void DrawCanvas_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -113,7 +183,7 @@ namespace DeskDraw
                 Y1 = _lastPoint.Y,
                 X2 = currentPoint.X,
                 Y2 = currentPoint.Y,
-                Stroke = Brushes.Red,
+                Stroke = _currentBrush,
                 StrokeThickness = BrushSettings.Thickness,
                 StrokeLineJoin = PenLineJoin.Round,
                 StrokeStartLineCap = PenLineCap.Round,
