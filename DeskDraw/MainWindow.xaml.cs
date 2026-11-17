@@ -296,6 +296,97 @@ namespace DeskDraw
             base.OnKeyDown(e);
         }
 
+        private void WallpaperButton_Click(object sender, MouseButtonEventArgs e)
+        {
+            SetWallpaperAsDesktop();
+        }
+
+        private void SetWallpaperAsDesktop()
+        {
+            try
+            {
+                if (_screen == null) return;
+
+                // Конвертируем логические единицы WPF в пиксели монитора
+                var source = PresentationSource.FromVisual(this);
+                if (source?.CompositionTarget == null) return;
+
+                var transform = source.CompositionTarget.TransformToDevice;
+                int pixelWidth = (int)(_screen.Bounds.Width * transform.M11);
+                int pixelHeight = (int)(_screen.Bounds.Height * transform.M22);
+
+                // Рендерим содержимое Grid (обои + рисунок) в битмап
+                var renderTarget = new RenderTargetBitmap(
+                    pixelWidth, pixelHeight,
+                    96 * transform.M11, 96 * transform.M22,
+                    PixelFormats.Pbgra32);
+
+                var drawingVisual = new DrawingVisual();
+                using (var ctx = drawingVisual.RenderOpen())
+                {
+                    // Рисуем обои
+                    if (WallpaperImage.Source != null)
+                    {
+                        var wallpaperBrush = new VisualBrush(WallpaperImage)
+                        {
+                            Stretch = Stretch.UniformToFill
+                        };
+                        ctx.DrawRectangle(wallpaperBrush, null, new Rect(0, 0, pixelWidth, pixelHeight));
+                    }
+                    else
+                    {
+                        ctx.DrawRectangle(Brushes.Black, null, new Rect(0, 0, pixelWidth, pixelHeight));
+                    }
+
+                    // Рисунок поверх обоев
+                    var canvasBrush = new VisualBrush(DrawCanvas);
+                    ctx.DrawRectangle(canvasBrush, null, new Rect(0, 0, pixelWidth, pixelHeight));
+                }
+
+                renderTarget.Render(drawingVisual);
+                renderTarget.Freeze();
+
+                // Сохраняем в PNG файл
+                string monitorName = _screen.Primary ? "Primary" : _screen.DeviceName.Replace("\\", "");
+                string tempPath = global::System.IO.Path.Combine(
+                    global::System.IO.Path.GetTempPath(),
+                    $"DeskDraw_Wallpaper_{monitorName}.png");
+
+                PngBitmapEncoder encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+
+                using (var stream = File.Create(tempPath))
+                {
+                    encoder.Save(stream);
+                }
+
+                // Устанавливаем как обои для текущего монитора
+                var wallpaperManager = (IDesktopWallpaper)new DesktopWallpaper();
+                wallpaperManager.SetWallpaper(null, tempPath);
+
+                // Показываем уведомление
+                Dispatcher.Invoke(() =>
+                {
+                    System.Windows.MessageBox.Show(
+                        "Обои рабочего стола обновлены!",
+                        "DeskDraw",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                });
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    System.Windows.MessageBox.Show(
+                        $"Ошибка при установке обоев:\n{ex.Message}",
+                        "DeskDraw",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                });
+            }
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             App.ShutdownAll();
