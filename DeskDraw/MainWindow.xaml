@@ -3,21 +3,42 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid x:Name="MainGrid">
         <Grid.RowDefinitions>
-            <RowDefinition Height="52" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Toolbar -->
-        <Border Grid.Row="0"
+        <!-- Wallpaper Image -->
+        <Image x:Name="WallpaperImage"
+               Grid.Row="0"
+               Stretch="UniformToFill" />
+
+        <!-- Drawing Canvas -->
+        <Canvas x:Name="DrawCanvas"
+                Grid.Row="0"
+                Background="Transparent" 
+                MouseLeftButtonDown="DrawCanvas_MouseLeftButtonDown"
+                MouseMove="DrawCanvas_MouseMove"
+                MouseLeftButtonUp="DrawCanvas_MouseLeftButtonUp"
+                MouseLeave="DrawCanvas_MouseLeave" />
+
+        <!-- Floating Toolbar -->
+        <Border x:Name="Toolbar"
+                Grid.Row="0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="10,10,0,0"
                 Background="#DD1A1A1A"
-                BorderBrush="#44FFFFFF"
-                BorderThickness="0,0,0,1">
-            <Grid Margin="12,6">
+                BorderBrush="#55FFFFFF"
+                BorderThickness="1"
+                CornerRadius="10"
+                MouseLeftButtonDown="Toolbar_MouseLeftButtonDown"
+                MouseLeftButtonUp="Toolbar_MouseLeftButtonUp"
+                MouseMove="Toolbar_MouseMove">
+            <Grid Margin="8,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="12" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="12" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
@@ -25,15 +46,15 @@
                 <StackPanel Grid.Column="0"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
-                    <Border Width="32" Height="32"
+                    <Border Width="28" Height="28"
                             Background="#33FFFFFF"
-                            CornerRadius="6"
+                            CornerRadius="5"
                             HorizontalAlignment="Center">
-                        <Canvas Width="18" Height="18"
+                        <Canvas Width="16" Height="16"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
                             <!-- Brush handle -->
-                            <Path Data="M3,15 L8,10 L10,12 L5,17 Z"
+                            <Path Data="M3,14 L7,9 L9,11 L5,16 Z"
                                   Fill="#FFB74C"
                                   Stretch="Uniform"
                                   HorizontalAlignment="Center"
@@ -44,7 +65,7 @@
                                 </Path.RenderTransform>
                             </Path>
                             <!-- Brush tip -->
-                            <Ellipse Canvas.Left="8" Canvas.Top="1"
+                            <Ellipse Canvas.Left="7" Canvas.Top="1"
                                      Width="5" Height="5"
                                      Fill="#FFF5E6"
                                      RenderTransformOrigin="0.5,0.5">
@@ -55,7 +76,7 @@
                         </Canvas>
                     </Border>
                     <TextBlock Text="  Кисть"
-                               FontSize="14"
+                               FontSize="12"
                                FontWeight="SemiBold"
                                Foreground="#EEEEEE"
                                VerticalAlignment="Center" />
@@ -65,20 +86,14 @@
                 <Border Grid.Column="1"
                         Width="1"
                         Background="#33FFFFFF"
-                        Margin="0,8" />
+                        Margin="0,6" />
 
                 <!-- Color Palette -->
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
-                    <TextBlock Text="Цвет:"
-                               FontSize="12"
-                               Foreground="#AAAAAA"
-                               VerticalAlignment="Center"
-                               Margin="0,0,6,0" />
-
                     <!-- Red -->
-                    <Border Width="24" Height="24"
+                    <Border Width="20" Height="20"
                             Background="#FF0000"
                             CornerRadius="50"
                             Margin="2,0"
@@ -87,93 +102,87 @@
                             BorderThickness="2"
                             Tag="#FF0000"
                             MouseLeftButtonDown="ColorDot_Clicked">
-                </Border>
+                    </Border>
 
-                <!-- Blue -->
-                <Border Width="24" Height="24"
-                        Background="#0066FF"
-                        CornerRadius="50"
-                        Margin="2,0"
-                        Cursor="Hand"
-                        ToolTip="Синий"
-                        Tag="#0066FF"
-                        MouseLeftButtonDown="ColorDot_Clicked">
-                </Border>
+                    <!-- Blue -->
+                    <Border Width="20" Height="20"
+                            Background="#0066FF"
+                            CornerRadius="50"
+                            Margin="2,0"
+                            Cursor="Hand"
+                            ToolTip="Синий"
+                            Tag="#0066FF"
+                            MouseLeftButtonDown="ColorDot_Clicked">
+                    </Border>
 
-                <!-- Green -->
-                <Border Width="24" Height="24"
-                        Background="#00CC44"
-                        CornerRadius="50"
-                        Margin="2,0"
-                        Cursor="Hand"
-                        ToolTip="Зелёный"
-                        Tag="#00CC44"
-                        MouseLeftButtonDown="ColorDot_Clicked">
-                </Border>
+                    <!-- Green -->
+                    <Border Width="20" Height="20"
+                            Background="#00CC44"
+                            CornerRadius="50"
+                            Margin="2,0"
+                            Cursor="Hand"
+                            ToolTip="Зелёный"
+                            Tag="#00CC44"
+                            MouseLeftButtonDown="ColorDot_Clicked">
+                    </Border>
 
-                <!-- Black -->
-                <Border Width="24" Height="24"
-                        Background="#1A1A1A"
-                        CornerRadius="50"
-                        Margin="2,0"
-                        Cursor="Hand"
-                        ToolTip="Чёрный"
-                        Tag="#1A1A1A"
-                        MouseLeftButtonDown="ColorDot_Clicked">
-                </Border>
+                    <!-- Black -->
+                    <Border Width="20" Height="20"
+                            Background="#1A1A1A"
+                            CornerRadius="50"
+                            Margin="2,0"
+                            Cursor="Hand"
+                            ToolTip="Чёрный"
+                            Tag="#1A1A1A"
+                            MouseLeftButtonDown="ColorDot_Clicked">
+                    </Border>
 
-                <!-- White -->
-                <Border Width="24" Height="24"
-                        Background="#F0F0F0"
-                        CornerRadius="50"
-                        Margin="2,0"
-                        Cursor="Hand"
-                        ToolTip="Белый"
-                        BorderThickness="1"
-                        BorderBrush="#666666"
-                        Tag="#F0F0F0"
-                        MouseLeftButtonDown="ColorDot_Clicked">
-                </Border>
+                    <!-- White -->
+                    <Border Width="20" Height="20"
+                            Background="#F0F0F0"
+                            CornerRadius="50"
+                            Margin="2,0"
+                            Cursor="Hand"
+                            ToolTip="Белый"
+                            BorderThickness="1"
+                            BorderBrush="#666666"
+                            Tag="#F0F0F0"
+                            MouseLeftButtonDown="ColorDot_Clicked">
+                    </Border>
 
-                <!-- Yellow -->
-                <Border Width="24" Height="24"
-                        Background="#FFCC00"
-                        CornerRadius="50"
-                        Margin="2,0"
-                        Cursor="Hand"
-                        ToolTip="Жёлтый"
-                        Tag="#FFCC00"
-                        MouseLeftButtonDown="ColorDot_Clicked">
-                </Border>
+                    <!-- Yellow -->
+                    <Border Width="20" Height="20"
+                            Background="#FFCC00"
+                            CornerRadius="50"
+                            Margin="2,0"
+                            Cursor="Hand"
+                            ToolTip="Жёлтый"
+                            Tag="#FFCC00"
+                            MouseLeftButtonDown="ColorDot_Clicked">
+                    </Border>
                 </StackPanel>
 
                 <!-- Divider -->
                 <Border Grid.Column="3"
                         Width="1"
                         Background="#33FFFFFF"
-                        Margin="0,8" />
+                        Margin="0,6" />
 
                 <!-- Thickness -->
                 <StackPanel Grid.Column="4"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
-                    <TextBlock Text="Размер:"
-                               FontSize="12"
-                               Foreground="#AAAAAA"
-                               VerticalAlignment="Center"
-                               Margin="0,0,6,0" />
-
                     <TextBlock x:Name="ThicknessValue"
                                Text="5"
-                               FontSize="13"
+                               FontSize="11"
                                Foreground="White"
                                FontWeight="Medium"
-                               Width="24"
+                               Width="20"
                                HorizontalAlignment="Center"
-                               Margin="0,0,8,0" />
+                               Margin="0,0,4,0" />
 
                     <Slider x:Name="ThicknessSlider"
-                            Width="100"
+                            Width="80"
                             Minimum="1"
                             Maximum="50"
                             Value="5"
@@ -183,24 +192,16 @@
                             ValueChanged="ThicknessSlider_ValueChanged" />
 
                     <!-- Brush Preview -->
-                    <Border Width="40" Height="40"
-                            Margin="10,0,0,0"
+                    <Border Width="32" Height="32"
+                            Margin="6,0,2,0"
                             Background="#33FFFFFF"
-                            CornerRadius="6"
+                            CornerRadius="5"
                             VerticalAlignment="Center">
                         <Canvas x:Name="BrushPreview"
-                                Width="40" Height="40" />
+                                Width="32" Height="32" />
                     </Border>
                 </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- Drawing Canvas -->
-        <Canvas x:Name="DrawCanvas" Grid.Row="1"
-                Background="Transparent" 
-                MouseLeftButtonDown="DrawCanvas_MouseLeftButtonDown"
-                MouseMove="DrawCanvas_MouseMove"
-                MouseLeftButtonUp="DrawCanvas_MouseLeftButtonUp"
-                MouseLeave="DrawCanvas_MouseLeave" />
+                </Grid>
+            </Border>
     </Grid>
 </Window>
