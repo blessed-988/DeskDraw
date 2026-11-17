@@ -2,7 +2,45 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid x:Name="MainGrid">
-        <Canvas x:Name="DrawCanvas" 
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="180" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0"
+                Background="#CC000000"
+                CornerRadius="8">
+            <StackPanel Margin="12">
+                <TextBlock Text="Кисть"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           Margin="0,0,0,16" />
+
+                <TextBlock Text="Толщина"
+                           FontSize="13"
+                           Foreground="#CCCCCC"
+                           Margin="0,0,0,4" />
+
+                <TextBlock x:Name="ThicknessValue"
+                           Text="5"
+                           FontSize="13"
+                           Foreground="White"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8" />
+
+                <Slider x:Name="ThicknessSlider"
+                        Minimum="1"
+                        Maximum="50"
+                        Value="5"
+                        TickFrequency="1"
+                        IsSnapToTickEnabled="True"
+                        Margin="0,0,0,16"
+                        ValueChanged="ThicknessSlider_ValueChanged" />
+            </StackPanel>
+        </Border>
+
+        <Canvas x:Name="DrawCanvas" Grid.Column="1"
                 Background="Transparent" 
                 MouseLeftButtonDown="DrawCanvas_MouseLeftButtonDown"
                 MouseMove="DrawCanvas_MouseMove"

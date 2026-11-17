@@ -19,6 +19,23 @@ namespace DeskDraw
         public MainWindow()
         {
             InitializeComponent();
+            BrushSettings.ThicknessChanged += OnThicknessChanged;
+            ThicknessSlider.Value = BrushSettings.Thickness;
+            ThicknessValue.Text = ((int)BrushSettings.Thickness).ToString();
+        }
+
+        ~MainWindow()
+        {
+            BrushSettings.ThicknessChanged -= OnThicknessChanged;
+        }
+
+        private void OnThicknessChanged(double thickness)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                ThicknessSlider.Value = thickness;
+                ThicknessValue.Text = ((int)thickness).ToString();
+            });
         }
 
         public void SetScreen(Screen screen)
@@ -78,6 +95,12 @@ namespace DeskDraw
             DrawCanvas.CaptureMouse();
         }
 
+        private void ThicknessSlider_ValueChanged(object sender, System.Windows.RoutedPropertyChangedEventArgs<double> e)
+        {
+            BrushSettings.Thickness = ThicknessSlider.Value;
+            ThicknessValue.Text = ((int)ThicknessSlider.Value).ToString();
+        }
+
         private void DrawCanvas_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (!_isDrawing) return;
@@ -91,7 +114,7 @@ namespace DeskDraw
                 X2 = currentPoint.X,
                 Y2 = currentPoint.Y,
                 Stroke = Brushes.Red,
-                StrokeThickness = 5,
+                StrokeThickness = BrushSettings.Thickness,
                 StrokeLineJoin = PenLineJoin.Round,
                 StrokeStartLineCap = PenLineCap.Round,
                 StrokeEndLineCap = PenLineCap.Round
