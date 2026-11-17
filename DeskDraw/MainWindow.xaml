@@ -30,11 +30,11 @@
                 BorderBrush="#55FFFFFF"
                 BorderThickness="1"
                 CornerRadius="10"
-                MouseLeftButtonDown="Toolbar_MouseLeftButtonDown"
                 MouseLeftButtonUp="Toolbar_MouseLeftButtonUp"
                 MouseMove="Toolbar_MouseMove">
             <Grid Margin="8,4">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="32" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="12" />
                     <ColumnDefinition Width="Auto" />
@@ -44,8 +44,38 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
+                <!-- Drag Grip -->
+                <Border Grid.Column="0"
+                        Width="32" Height="32"
+                        Background="Transparent"
+                        Cursor="SizeAll"
+                        MouseLeftButtonDown="Grip_MouseLeftButtonDown"
+                        MouseLeftButtonUp="Grip_MouseLeftButtonUp">
+                    <Grid Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Grid.Row="0" Grid.Column="0" Width="3" Height="3" Fill="#88FFFFFF" />
+                        <Ellipse Grid.Row="0" Grid.Column="1" Width="3" Height="3" Fill="#88FFFFFF" />
+                        <Ellipse Grid.Row="0" Grid.Column="2" Width="3" Height="3" Fill="#88FFFFFF" />
+                        <Ellipse Grid.Row="1" Grid.Column="0" Width="3" Height="3" Fill="#88FFFFFF" />
+                        <Ellipse Grid.Row="1" Grid.Column="1" Width="3" Height="3" Fill="#88FFFFFF" />
+                        <Ellipse Grid.Row="1" Grid.Column="2" Width="3" Height="3" Fill="#88FFFFFF" />
+                        <Ellipse Grid.Row="2" Grid.Column="0" Width="3" Height="3" Fill="#88FFFFFF" />
+                        <Ellipse Grid.Row="2" Grid.Column="1" Width="3" Height="3" Fill="#88FFFFFF" />
+                        <Ellipse Grid.Row="2" Grid.Column="2" Width="3" Height="3" Fill="#88FFFFFF" />
+                    </Grid>
+                </Border>
+
                 <!-- Brush Icon + Tool Name -->
-                <StackPanel Grid.Column="0"
+                <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
                     <Border Width="28" Height="28"
@@ -85,13 +115,13 @@
                 </StackPanel>
 
                 <!-- Divider -->
-                <Border Grid.Column="1"
+                <Border Grid.Column="2"
                         Width="1"
                         Background="#33FFFFFF"
                         Margin="0,6" />
 
                 <!-- Color Palette -->
-                <StackPanel Grid.Column="2"
+                <StackPanel Grid.Column="3"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
                     <!-- Red -->
@@ -165,13 +195,13 @@
                 </StackPanel>
 
                 <!-- Divider -->
-                <Border Grid.Column="3"
+                <Border Grid.Column="4"
                         Width="1"
                         Background="#33FFFFFF"
                         Margin="0,6" />
 
                 <!-- Thickness -->
-                <StackPanel Grid.Column="4"
+                <StackPanel Grid.Column="5"
                             Orientation="Horizontal"
                             VerticalAlignment="Center"
                             Margin="0,0,6,0">
@@ -206,13 +236,13 @@
                 </StackPanel>
 
                 <!-- Divider -->
-                <Border Grid.Column="5"
+                <Border Grid.Column="6"
                         Width="1"
                         Background="#33FFFFFF"
                         Margin="0,6" />
 
                 <!-- Wallpaper Button -->
-                <Border Grid.Column="6"
+                <Border Grid.Column="7"
                         Width="28" Height="28"
                         Background="#33FFFFFF"
                         CornerRadius="5"

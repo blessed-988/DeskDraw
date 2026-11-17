@@ -191,11 +191,22 @@ namespace DeskDraw
             }
         }
 
-        private void Toolbar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void Grip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _isDraggingToolbar = true;
             _toolbarDragStart = e.GetPosition(this);
             Toolbar.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void Grip_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_isDraggingToolbar)
+            {
+                _isDraggingToolbar = false;
+                Toolbar.ReleaseMouseCapture();
+            }
+            e.Handled = true;
         }
 
         private void Toolbar_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -209,13 +220,12 @@ namespace DeskDraw
             var newLeft = currentMargin.Left + delta.X;
             var newTop = currentMargin.Top + delta.Y;
 
-            // Ограничиваем перемещение в пределах экрана
-            var bounds = _screen.Bounds;
+            // Панель не выходит за границы экрана (окно покрывает весь экран)
             var toolbarWidth = Toolbar.ActualWidth;
             var toolbarHeight = Toolbar.ActualHeight;
 
-            newLeft = Math.Max(-toolbarWidth + 10, Math.Min(newLeft, bounds.Width - 10));
-            newTop = Math.Max(-toolbarHeight + 10, Math.Min(newTop, bounds.Height - 10));
+            newLeft = Math.Max(0, Math.Min(Width - toolbarWidth, newLeft));
+            newTop = Math.Max(0, Math.Min(Height - toolbarHeight, newTop));
 
             Toolbar.Margin = new Thickness(newLeft, newTop, 0, 0);
 
