@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -14,9 +15,14 @@ namespace DeskDraw
 {
     public partial class MainWindow : Window
     {
+        private enum ToolType { Brush, Rectangle }
+
         private Screen _screen;
         private bool _isDrawing = false;
+        private ToolType _currentTool = ToolType.Brush;
         private Point _lastPoint = new Point();
+        private Point _rectangleStartPoint = new Point();
+        private Rectangle? _rectanglePreview = null;
         private string _selectedHex = "#FF0000";
         private SolidColorBrush _currentBrush = Brushes.Red;
         private bool _isDraggingToolbar = false;
@@ -41,6 +47,7 @@ namespace DeskDraw
             ThicknessSlider.Value = BrushSettings.Thickness;
             ThicknessValue.Text = ((int)BrushSettings.Thickness).ToString();
             SelectedHex = BrushSettings.ColorHex;
+            UpdateToolIndicator();
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -108,6 +115,32 @@ namespace DeskDraw
             BrushPreview.Children.Add(circle);
         }
 
+        private void SetTool(ToolType tool)
+        {
+            _currentTool = tool;
+            UpdateToolIndicator();
+        }
+
+        private void UpdateToolIndicator()
+        {
+            if (BrushIconBorder != null)
+            {
+                BrushIconBorder.Background = _currentTool == ToolType.Brush
+                    ? new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF))
+                    : new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
+            }
+            if (RectangleIconBorder != null)
+            {
+                RectangleIconBorder.Background = _currentTool == ToolType.Rectangle
+                    ? new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF))
+                    : new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
+            }
+            if (ToolNameText != null)
+            {
+                ToolNameText.Text = _currentTool == ToolType.Brush ? "Кисть" : "Прямоугольник";
+            }
+        }
+
         private void OnThicknessChanged(double thickness)
         {
             Dispatcher.Invoke(() =>
@@ -171,8 +204,23 @@ namespace DeskDraw
 
         private void DrawCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (_isDraggingToolbar) return;
+
             _isDrawing = true;
             _lastPoint = e.GetPosition(DrawCanvas);
+            _rectangleStartPoint = _lastPoint;
+            if (_currentTool == ToolType.Rectangle)
+            {
+                _rectanglePreview = new Rectangle
+                {
+                    Fill = _currentBrush,
+                    Stroke = _currentBrush,
+                    StrokeThickness = BrushSettings.Thickness,
+                    RadiusX = 2,
+                    RadiusY = 2
+                };
+                DrawCanvas.Children.Add(_rectanglePreview);
+            }
             DrawCanvas.CaptureMouse();
         }
 
@@ -189,6 +237,18 @@ namespace DeskDraw
             {
                 SelectedHex = hex;
             }
+        }
+
+        private void BrushTool_Click(object sender, MouseButtonEventArgs e)
+        {
+            SetTool(ToolType.Brush);
+            e.Handled = true;
+        }
+
+        private void RectangleTool_Click(object sender, MouseButtonEventArgs e)
+        {
+            SetTool(ToolType.Rectangle);
+            e.Handled = true;
         }
 
         private void Grip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -244,6 +304,20 @@ namespace DeskDraw
 
             var currentPoint = e.GetPosition(DrawCanvas);
 
+            if (_currentTool == ToolType.Rectangle && _rectanglePreview != null)
+            {
+                double x = Math.Min(_rectangleStartPoint.X, currentPoint.X);
+                double y = Math.Min(_rectangleStartPoint.Y, currentPoint.Y);
+                double width = Math.Abs(currentPoint.X - _rectangleStartPoint.X);
+                double height = Math.Abs(currentPoint.Y - _rectangleStartPoint.Y);
+
+                _rectanglePreview.Width = width;
+                _rectanglePreview.Height = height;
+                Canvas.SetLeft(_rectanglePreview, x);
+                Canvas.SetTop(_rectanglePreview, y);
+                return;
+            }
+
             var line = new Line
             {
                 X1 = _lastPoint.X,
@@ -266,26 +340,53 @@ namespace DeskDraw
         {
             if (_isDrawing)
             {
-                var currentPoint = e.GetPosition(DrawCanvas);
-                var dx = currentPoint.X - _lastPoint.X;
-                var dy = currentPoint.Y - _lastPoint.Y;
-                var distance = Math.Sqrt(dx * dx + dy * dy);
-
-                if (distance < 2)
+                if (_currentTool == ToolType.Rectangle)
                 {
-                    var radius = Math.Max(BrushSettings.Thickness / 2, 2);
-                    var dot = new Ellipse
+                    if (_rectanglePreview != null)
                     {
-                        Width = radius * 2,
-                        Height = radius * 2,
-                        Fill = _currentBrush,
-                        StrokeThickness = 0,
-                        Margin = new Thickness(
-                            _lastPoint.X - radius,
-                            _lastPoint.Y - radius,
-                            0, 0)
-                    };
-                    DrawCanvas.Children.Add(dot);
+                        if (_rectanglePreview.Width < 3 && _rectanglePreview.Height < 3)
+                        {
+                            DrawCanvas.Children.Remove(_rectanglePreview);
+                            var radius = Math.Max(BrushSettings.Thickness / 2, 2);
+                            var dot = new Ellipse
+                            {
+                                Width = radius * 2,
+                                Height = radius * 2,
+                                Fill = _currentBrush,
+                                StrokeThickness = 0,
+                                Margin = new Thickness(
+                                    _rectangleStartPoint.X - radius,
+                                    _rectangleStartPoint.Y - radius,
+                                    0, 0)
+                            };
+                            DrawCanvas.Children.Add(dot);
+                        }
+                        _rectanglePreview = null;
+                    }
+                }
+                else
+                {
+                    var currentPoint = e.GetPosition(DrawCanvas);
+                    var dx = currentPoint.X - _lastPoint.X;
+                    var dy = currentPoint.Y - _lastPoint.Y;
+                    var distance = Math.Sqrt(dx * dx + dy * dy);
+
+                    if (distance < 2)
+                    {
+                        var radius = Math.Max(BrushSettings.Thickness / 2, 2);
+                        var dot = new Ellipse
+                        {
+                            Width = radius * 2,
+                            Height = radius * 2,
+                            Fill = _currentBrush,
+                            StrokeThickness = 0,
+                            Margin = new Thickness(
+                                _lastPoint.X - radius,
+                                _lastPoint.Y - radius,
+                                0, 0)
+                        };
+                        DrawCanvas.Children.Add(dot);
+                    }
                 }
             }
 

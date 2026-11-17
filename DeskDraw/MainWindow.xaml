@@ -74,18 +74,19 @@
                     </Grid>
                 </Border>
 
-                <!-- Brush Icon + Tool Name -->
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Center">
-                    <Border Width="28" Height="28"
+                <!-- Tool Selector -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Brush Tool -->
+                    <Border x:Name="BrushIconBorder"
+                            Width="28" Height="28"
                             Background="#33FFFFFF"
                             CornerRadius="5"
-                            HorizontalAlignment="Center">
+                            Margin="0,0,3,0"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="BrushTool_Click">
                         <Canvas Width="16" Height="16"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
-                            <!-- Brush handle -->
                             <Path Data="M3,14 L7,9 L9,11 L5,16 Z"
                                   Fill="#FFB74C"
                                   Stretch="Uniform"
@@ -96,7 +97,6 @@
                                     <RotateTransform Angle="-45" />
                                 </Path.RenderTransform>
                             </Path>
-                            <!-- Brush tip -->
                             <Ellipse Canvas.Left="7" Canvas.Top="1"
                                      Width="5" Height="5"
                                      Fill="#FFF5E6"
@@ -107,11 +107,31 @@
                             </Ellipse>
                         </Canvas>
                     </Border>
-                    <TextBlock Text="  Кисть"
+                    <!-- Rectangle Tool -->
+                    <Border x:Name="RectangleIconBorder"
+                            Width="28" Height="28"
+                            Background="#33FFFFFF"
+                            CornerRadius="5"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="RectangleTool_Click">
+                        <Canvas Width="16" Height="16"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                            <Rectangle Fill="#FFB74C"
+                                       Width="11" Height="11"
+                                       StrokeThickness="0"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,0,1" />
+                        </Canvas>
+                    </Border>
+                    <TextBlock x:Name="ToolNameText"
+                               Text="Кисть"
                                FontSize="12"
                                FontWeight="SemiBold"
                                Foreground="#EEEEEE"
-                               VerticalAlignment="Center" />
+                               VerticalAlignment="Center"
+                               Margin="6,0,0,0" />
                 </StackPanel>
 
                 <!-- Divider -->
