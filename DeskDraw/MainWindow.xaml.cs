@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using System.Windows.Forms;
 
 namespace DeskDraw
@@ -12,6 +13,8 @@ namespace DeskDraw
     public partial class MainWindow : Window
     {
         private Screen _screen;
+        private bool _isDrawing = false;
+        private Point _lastPoint = new Point();
 
         public MainWindow()
         {
@@ -66,6 +69,49 @@ namespace DeskDraw
                 System.Windows.MessageBox.Show($"Ошибка: {ex.Message}");
                 MainGrid.Background = Brushes.DarkSlateGray;
             }
+        }
+
+        private void DrawCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _isDrawing = true;
+            _lastPoint = e.GetPosition(DrawCanvas);
+            DrawCanvas.CaptureMouse();
+        }
+
+        private void DrawCanvas_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (!_isDrawing) return;
+
+            var currentPoint = e.GetPosition(DrawCanvas);
+
+            var line = new Line
+            {
+                X1 = _lastPoint.X,
+                Y1 = _lastPoint.Y,
+                X2 = currentPoint.X,
+                Y2 = currentPoint.Y,
+                Stroke = Brushes.Red,
+                StrokeThickness = 5,
+                StrokeLineJoin = PenLineJoin.Round,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round
+            };
+
+            DrawCanvas.Children.Add(line);
+
+            _lastPoint = currentPoint;
+        }
+
+        private void DrawCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _isDrawing = false;
+            DrawCanvas.ReleaseMouseCapture();
+        }
+
+        private void DrawCanvas_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            _isDrawing = false;
+            DrawCanvas.ReleaseMouseCapture();
         }
 
         protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
