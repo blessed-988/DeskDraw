@@ -254,6 +254,31 @@ namespace DeskDraw
 
         private void DrawCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            if (_isDrawing)
+            {
+                var currentPoint = e.GetPosition(DrawCanvas);
+                var dx = currentPoint.X - _lastPoint.X;
+                var dy = currentPoint.Y - _lastPoint.Y;
+                var distance = Math.Sqrt(dx * dx + dy * dy);
+
+                if (distance < 2)
+                {
+                    var radius = Math.Max(BrushSettings.Thickness / 2, 2);
+                    var dot = new Ellipse
+                    {
+                        Width = radius * 2,
+                        Height = radius * 2,
+                        Fill = _currentBrush,
+                        StrokeThickness = 0,
+                        Margin = new Thickness(
+                            _lastPoint.X - radius,
+                            _lastPoint.Y - radius,
+                            0, 0)
+                    };
+                    DrawCanvas.Children.Add(dot);
+                }
+            }
+
             _isDrawing = false;
             DrawCanvas.ReleaseMouseCapture();
         }
