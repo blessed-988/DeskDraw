@@ -324,14 +324,35 @@ namespace DeskDraw
                 var drawingVisual = new DrawingVisual();
                 using (var ctx = drawingVisual.RenderOpen())
                 {
-                    // Рисуем обои
-                    if (WallpaperImage.Source != null)
+                    // Рисуем обои с высоким качеством
+                    if (WallpaperImage.Source is BitmapImage bitmapSource)
                     {
-                        var wallpaperBrush = new VisualBrush(WallpaperImage)
+                        RenderOptions.SetBitmapScalingMode(drawingVisual, BitmapScalingMode.HighQuality);
+
+                        // Вычисляем пропорции UniformToFill (обрезка с сохранением пропорций)
+                        double targetRatio = (double)pixelWidth / pixelHeight;
+                        double imageRatio = (double)bitmapSource.PixelWidth / bitmapSource.PixelHeight;
+
+                        double scale;
+                        double offsetX = 0, offsetY = 0;
+
+                        if (imageRatio > targetRatio)
                         {
-                            Stretch = Stretch.UniformToFill
-                        };
-                        ctx.DrawRectangle(wallpaperBrush, null, new Rect(0, 0, pixelWidth, pixelHeight));
+                            // Изображение шире — масштабируем по высоте
+                            scale = pixelHeight / (double)bitmapSource.PixelHeight;
+                            double scaledWidth = bitmapSource.PixelWidth * scale;
+                            offsetX = (pixelWidth - scaledWidth) / 2;
+                        }
+                        else
+                        {
+                            // Изображение выше — масштабируем по ширине
+                            scale = pixelWidth / (double)bitmapSource.PixelWidth;
+                            double scaledHeight = bitmapSource.PixelHeight * scale;
+                            offsetY = (pixelHeight - scaledHeight) / 2;
+                        }
+
+                        ctx.DrawImage(bitmapSource, new Rect(offsetX, offsetY,
+                            pixelWidth - offsetX * 2, pixelHeight - offsetY * 2));
                     }
                     else
                     {
@@ -339,7 +360,11 @@ namespace DeskDraw
                     }
 
                     // Рисунок поверх обоев
-                    var canvasBrush = new VisualBrush(DrawCanvas);
+                    RenderOptions.SetBitmapScalingMode(drawingVisual, BitmapScalingMode.HighQuality);
+                    var canvasBrush = new VisualBrush(DrawCanvas)
+                    {
+                        Stretch = Stretch.None
+                    };
                     ctx.DrawRectangle(canvasBrush, null, new Rect(0, 0, pixelWidth, pixelHeight));
                 }
 
