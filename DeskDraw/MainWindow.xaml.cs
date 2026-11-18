@@ -412,6 +412,8 @@ namespace DeskDraw
         {
             if (e.Key == Key.Escape || e.Key == Key.Q)
                 Close();
+            if (e.Key == Key.S)
+                SetWallpaperAsDesktop();
             base.OnKeyDown(e);
         }
 
