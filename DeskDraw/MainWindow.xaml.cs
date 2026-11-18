@@ -64,9 +64,17 @@ namespace DeskDraw
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             const int WM_HOTKEY = 0x0312;
-            if (msg == WM_HOTKEY && wParam.ToInt32() == HotKeyManager.HOTKEY_ID)
+            if (msg == WM_HOTKEY)
             {
-                HotKeyManager.ResetAll();
+                var id = wParam.ToInt32();
+                if (id == HotKeyManager.HOTKEY_ID)
+                {
+                    HotKeyManager.ResetAll();
+                }
+                else if (id == HotKeyManager.HOTKEY_WALLPAPER)
+                {
+                    SetWallpaperAsDesktop();
+                }
                 handled = true;
             }
             return IntPtr.Zero;
@@ -402,7 +410,7 @@ namespace DeskDraw
 
         protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
         {
-            if (e.Key == Key.Escape)
+            if (e.Key == Key.Escape || e.Key == Key.Q)
                 Close();
             base.OnKeyDown(e);
         }
@@ -410,6 +418,11 @@ namespace DeskDraw
         private void WallpaperButton_Click(object sender, MouseButtonEventArgs e)
         {
             SetWallpaperAsDesktop();
+        }
+
+        private void CloseButton_Click(object sender, MouseButtonEventArgs e)
+        {
+            Close();
         }
 
         private void SetWallpaperAsDesktop()
@@ -499,16 +512,6 @@ namespace DeskDraw
                 // Устанавливаем как обои для текущего монитора
                 var wallpaperManager = (IDesktopWallpaper)new DesktopWallpaper();
                 wallpaperManager.SetWallpaper(null, tempPath);
-
-                // Показываем уведомление
-                Dispatcher.Invoke(() =>
-                {
-                    System.Windows.MessageBox.Show(
-                        "Обои рабочего стола обновлены!",
-                        "DeskDraw",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                });
             }
             catch (Exception ex)
             {
@@ -539,11 +542,14 @@ namespace DeskDraw
         static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         public const int HOTKEY_ID = 0x1000;
+        public const int HOTKEY_WALLPAPER = 0x1001;
         const uint MOD_NOREPEAT = 0x4000;
+        const uint MOD_CONTROL = 0x0002;
 
         public static void RegisterHotKey(IntPtr handle)
         {
             RegisterHotKey(handle, HOTKEY_ID, MOD_NOREPEAT, (uint)System.Windows.Input.KeyInterop.VirtualKeyFromKey(System.Windows.Input.Key.R));
+            RegisterHotKey(handle, HOTKEY_WALLPAPER, MOD_NOREPEAT | MOD_CONTROL, (uint)System.Windows.Input.KeyInterop.VirtualKeyFromKey(System.Windows.Input.Key.S));
         }
 
         public static void ResetAll()

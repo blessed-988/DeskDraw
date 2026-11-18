@@ -32,20 +32,10 @@
                 CornerRadius="10"
                 MouseLeftButtonUp="Toolbar_MouseLeftButtonUp"
                 MouseMove="Toolbar_MouseMove">
-            <Grid Margin="8,4">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="32" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Margin="8,4" VerticalAlignment="Top">
 
                 <!-- Drag Grip -->
-                <Border Grid.Column="0"
+                <Border
                         Width="32" Height="32"
                         Background="Transparent"
                         Cursor="SizeAll"
@@ -75,7 +65,7 @@
                 </Border>
 
                 <!-- Tool Selector -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <!-- Brush Tool -->
                     <Border x:Name="BrushIconBorder"
                             Width="28" Height="28"
@@ -135,13 +125,12 @@
                 </StackPanel>
 
                 <!-- Divider -->
-                <Border Grid.Column="2"
-                        Width="1"
+                <Border Width="1"
                         Background="#33FFFFFF"
                         Margin="0,6" />
 
                 <!-- Color Palette -->
-                <StackPanel Grid.Column="3"
+                <StackPanel
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
                     <!-- Red -->
@@ -215,13 +204,12 @@
                 </StackPanel>
 
                 <!-- Divider -->
-                <Border Grid.Column="4"
-                        Width="1"
+                <Border Width="1"
                         Background="#33FFFFFF"
                         Margin="0,6" />
 
                 <!-- Thickness -->
-                <StackPanel Grid.Column="5"
+                <StackPanel
                             Orientation="Horizontal"
                             VerticalAlignment="Center"
                             Margin="0,0,6,0">
@@ -256,13 +244,12 @@
                 </StackPanel>
 
                 <!-- Divider -->
-                <Border Grid.Column="6"
-                        Width="1"
+                <Border Width="1"
                         Background="#33FFFFFF"
                         Margin="0,6" />
 
                 <!-- Wallpaper Button -->
-                <Border Grid.Column="7"
+                <Border
                         Width="28" Height="28"
                         Background="#33FFFFFF"
                         CornerRadius="5"
@@ -290,7 +277,28 @@
                               StrokeThickness="1" />
                     </Canvas>
                 </Border>
-                </Grid>
+
+                <!-- Close Button -->
+                <Border
+                        Width="28" Height="28"
+                        Background="#33FFFFFF"
+                        CornerRadius="5"
+                        Margin="6,0,8,0"
+                        Cursor="Hand"
+                        ToolTip="Закрыть"
+                        MouseLeftButtonDown="CloseButton_Click">
+                    <Canvas Width="16" Height="16"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                        <Line X1="4" Y1="4" X2="12" Y2="12"
+                              Stroke="#EEEEEE"
+                              StrokeThickness="1.5" />
+                        <Line X1="12" Y1="4" X2="4" Y2="12"
+                              Stroke="#EEEEEE"
+                              StrokeThickness="1.5" />
+                    </Canvas>
+                </Border>
+            </StackPanel>
             </Border>
     </Grid>
 </Window>
