@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -22,11 +23,36 @@ namespace DeskDraw
         private ToolType _currentTool = ToolType.Brush;
         private Point _lastPoint = new Point();
         private Point _rectangleStartPoint = new Point();
-        private Rectangle? _rectanglePreview = null;
+        private System.Windows.Shapes.Rectangle? _rectanglePreview = null;
         private string _selectedHex = "#FF0000";
         private SolidColorBrush _currentBrush = Brushes.Red;
         private bool _isDraggingToolbar = false;
         private Point _toolbarDragStart = new Point();
+        private Stack<List<Shape>> _undoStack = new Stack<List<Shape>>();
+        private Stack<List<Shape>> _redoStack = new Stack<List<Shape>>();
+        private List<Shape> _currentStrokeShapes = new List<Shape>();
+        private bool _isUndoEnabled = false;
+        private bool _isRedoEnabled = false;
+
+        public bool IsUndoEnabled
+        {
+            get => _isUndoEnabled;
+            set
+            {
+                _isUndoEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsRedoEnabled
+        {
+            get => _isRedoEnabled;
+            set
+            {
+                _isRedoEnabled = value;
+                OnPropertyChanged();
+            }
+        }
 
         public string SelectedHex
         {
@@ -48,6 +74,7 @@ namespace DeskDraw
             ThicknessValue.Text = ((int)BrushSettings.Thickness).ToString();
             SelectedHex = BrushSettings.ColorHex;
             UpdateToolIndicator();
+            UpdateButtonStates();
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -217,9 +244,10 @@ namespace DeskDraw
             _isDrawing = true;
             _lastPoint = e.GetPosition(DrawCanvas);
             _rectangleStartPoint = _lastPoint;
+            _currentStrokeShapes.Clear();
             if (_currentTool == ToolType.Rectangle)
             {
-                _rectanglePreview = new Rectangle
+                _rectanglePreview = new System.Windows.Shapes.Rectangle
                 {
                     Fill = _currentBrush,
                     Stroke = _currentBrush,
@@ -228,6 +256,7 @@ namespace DeskDraw
                     RadiusY = 2
                 };
                 DrawCanvas.Children.Add(_rectanglePreview);
+                _currentStrokeShapes.Add(_rectanglePreview);
             }
             DrawCanvas.CaptureMouse();
         }
@@ -340,6 +369,7 @@ namespace DeskDraw
             };
 
             DrawCanvas.Children.Add(line);
+            _currentStrokeShapes.Add(line);
 
             _lastPoint = currentPoint;
         }
@@ -355,6 +385,7 @@ namespace DeskDraw
                         if (_rectanglePreview.Width < 3 && _rectanglePreview.Height < 3)
                         {
                             DrawCanvas.Children.Remove(_rectanglePreview);
+                            _currentStrokeShapes.Remove(_rectanglePreview);
                             var radius = Math.Max(BrushSettings.Thickness / 2, 2);
                             var dot = new Ellipse
                             {
@@ -368,6 +399,7 @@ namespace DeskDraw
                                     0, 0)
                             };
                             DrawCanvas.Children.Add(dot);
+                            _currentStrokeShapes.Add(dot);
                         }
                         _rectanglePreview = null;
                     }
@@ -394,7 +426,16 @@ namespace DeskDraw
                                 0, 0)
                         };
                         DrawCanvas.Children.Add(dot);
+                        _currentStrokeShapes.Add(dot);
                     }
+                }
+
+                // Push completed stroke to undo stack
+                if (_currentStrokeShapes.Count > 0)
+                {
+                    _undoStack.Push(new List<Shape>(_currentStrokeShapes));
+                    _redoStack.Clear();
+                    UpdateButtonStates();
                 }
             }
 
@@ -408,12 +449,91 @@ namespace DeskDraw
             DrawCanvas.ReleaseMouseCapture();
         }
 
+        private void UpdateButtonStates()
+        {
+            IsUndoEnabled = _undoStack.Count > 0;
+            IsRedoEnabled = _redoStack.Count > 0;
+
+            if (UndoButtonBorder != null)
+            {
+                UndoButtonBorder.Cursor = IsUndoEnabled ? System.Windows.Input.Cursors.Hand : System.Windows.Input.Cursors.Arrow;
+            }
+            if (RedoButtonBorder != null)
+            {
+                RedoButtonBorder.Cursor = IsRedoEnabled ? System.Windows.Input.Cursors.Hand : System.Windows.Input.Cursors.Arrow;
+            }
+        }
+
+        private void Undo()
+        {
+            if (_undoStack.Count == 0) return;
+
+            var shapes = _undoStack.Pop();
+            var redoGroup = new List<Shape>();
+
+            foreach (var shape in shapes)
+            {
+                if (DrawCanvas.Children.Contains(shape))
+                {
+                    DrawCanvas.Children.Remove(shape);
+                    redoGroup.Add(shape);
+                }
+            }
+
+            if (redoGroup.Count > 0)
+            {
+                _redoStack.Push(redoGroup);
+            }
+
+            UpdateButtonStates();
+        }
+
+        private void Redo()
+        {
+            if (_redoStack.Count == 0) return;
+
+            var shapes = _redoStack.Pop();
+            var undoGroup = new List<Shape>();
+
+            foreach (var shape in shapes)
+            {
+                DrawCanvas.Children.Add(shape);
+                undoGroup.Add(shape);
+            }
+
+            if (undoGroup.Count > 0)
+            {
+                _undoStack.Push(undoGroup);
+            }
+
+            UpdateButtonStates();
+        }
+
         protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key == Key.Escape || e.Key == Key.Q)
+            {
                 Close();
+                return;
+            }
             if (e.Key == Key.S)
+            {
                 SetWallpaperAsDesktop();
+                return;
+            }
+            if (e.Key == Key.Z && e.KeyboardDevice.Modifiers == ModifierKeys.Control)
+            {
+                Undo();
+                e.Handled = true;
+                return;
+            }
+            if ((e.Key == Key.Z && e.KeyboardDevice.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) ||
+                (e.Key == Key.Y && e.KeyboardDevice.Modifiers == ModifierKeys.Control))
+            {
+                Redo();
+                e.Handled = true;
+                return;
+            }
             base.OnKeyDown(e);
         }
 
@@ -425,6 +545,18 @@ namespace DeskDraw
         private void CloseButton_Click(object sender, MouseButtonEventArgs e)
         {
             Close();
+        }
+
+        private void UndoButton_Click(object sender, MouseButtonEventArgs e)
+        {
+            Undo();
+            e.Handled = true;
+        }
+
+        private void RedoButton_Click(object sender, MouseButtonEventArgs e)
+        {
+            Redo();
+            e.Handled = true;
         }
 
         private void SetWallpaperAsDesktop()
