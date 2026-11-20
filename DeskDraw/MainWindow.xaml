@@ -82,6 +82,7 @@
                             CornerRadius="5"
                             Margin="0,0,3,0"
                             Cursor="Hand"
+                            ToolTip="Кисть (B)"
                             MouseLeftButtonDown="BrushTool_Click">
                         <Canvas Width="16" Height="16"
                                 HorizontalAlignment="Center"
@@ -148,7 +149,7 @@
                             CornerRadius="50"
                             Margin="2,0"
                             Cursor="Hand"
-                            ToolTip="Красный"
+                            ToolTip="Красный [1]"
                             BorderThickness="2"
                             Tag="#FF0000"
                             MouseLeftButtonDown="ColorDot_Clicked">
@@ -321,7 +322,7 @@
                         CornerRadius="5"
                         Margin="6,0,8,0"
                         Cursor="Hand"
-                        ToolTip="Обои рабочего стола (S / Ctrl+S)"
+                        ToolTip="Обои рабочего стола (Ctrl+S)"
                         MouseLeftButtonDown="WallpaperButton_Click">
                     <Canvas Width="16" Height="16"
                             HorizontalAlignment="Center"
@@ -351,7 +352,7 @@
                         CornerRadius="5"
                         Margin="6,0,8,0"
                         Cursor="Hand"
-                        ToolTip="Закрыть (Esc / Q)"
+                        ToolTip="Закрыть (Ctrl+Q)"
                         MouseLeftButtonDown="CloseButton_Click">
                     <Canvas Width="16" Height="16"
                             HorizontalAlignment="Center"

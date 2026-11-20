@@ -98,10 +98,6 @@ namespace DeskDraw
                 {
                     HotKeyManager.ResetAll();
                 }
-                else if (id == HotKeyManager.HOTKEY_WALLPAPER)
-                {
-                    SetWallpaperAsDesktop();
-                }
                 handled = true;
             }
             return IntPtr.Zero;
@@ -511,14 +507,14 @@ namespace DeskDraw
 
         protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
         {
-            if (e.Key == Key.Escape || e.Key == Key.Q)
-            {
-                Close();
-                return;
-            }
-            if (e.Key == Key.S)
+            if (e.Key == Key.S && e.KeyboardDevice.Modifiers == ModifierKeys.Control)
             {
                 SetWallpaperAsDesktop();
+                return;
+            }
+            if (e.Key == Key.Q && e.KeyboardDevice.Modifiers == ModifierKeys.Control)
+            {
+                Close();
                 return;
             }
             if (e.Key == Key.Z && e.KeyboardDevice.Modifiers == ModifierKeys.Control)
@@ -534,6 +530,51 @@ namespace DeskDraw
                 e.Handled = true;
                 return;
             }
+
+            // Tools
+            if (e.Key == Key.B)
+            {
+                SetTool(ToolType.Brush);
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.R)
+            {
+                SetTool(ToolType.Rectangle);
+                e.Handled = true;
+                return;
+            }
+
+            // Colors: 1-6
+            if (e.Key >= Key.D1 && e.Key <= Key.D6)
+            {
+                int index = (int)e.Key - (int)Key.D1;
+                string[] colors = { "#FF0000", "#0066FF", "#00CC44", "#1A1A1A", "#F0F0F0", "#FFCC00" };
+                SelectedHex = colors[index];
+                e.Handled = true;
+                return;
+            }
+
+            // Thickness: left/right arrows
+            if (e.Key == Key.Left)
+            {
+                BrushSettings.Thickness = Math.Max(1, BrushSettings.Thickness - 1);
+                ThicknessSlider.Value = BrushSettings.Thickness;
+                ThicknessValue.Text = ((int)BrushSettings.Thickness).ToString();
+                UpdateBrushPreview();
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.Right)
+            {
+                BrushSettings.Thickness = Math.Min(50, BrushSettings.Thickness + 1);
+                ThicknessSlider.Value = BrushSettings.Thickness;
+                ThicknessValue.Text = ((int)BrushSettings.Thickness).ToString();
+                UpdateBrushPreview();
+                e.Handled = true;
+                return;
+            }
+
             base.OnKeyDown(e);
         }
 
@@ -676,14 +717,12 @@ namespace DeskDraw
         static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         public const int HOTKEY_ID = 0x1000;
-        public const int HOTKEY_WALLPAPER = 0x1001;
         const uint MOD_NOREPEAT = 0x4000;
         const uint MOD_CONTROL = 0x0002;
 
         public static void RegisterHotKey(IntPtr handle)
         {
-            RegisterHotKey(handle, HOTKEY_ID, MOD_NOREPEAT, (uint)System.Windows.Input.KeyInterop.VirtualKeyFromKey(System.Windows.Input.Key.R));
-            RegisterHotKey(handle, HOTKEY_WALLPAPER, MOD_NOREPEAT | MOD_CONTROL, (uint)System.Windows.Input.KeyInterop.VirtualKeyFromKey(System.Windows.Input.Key.S));
+            RegisterHotKey(handle, HOTKEY_ID, MOD_NOREPEAT | MOD_CONTROL, (uint)System.Windows.Input.KeyInterop.VirtualKeyFromKey(System.Windows.Input.Key.R));
         }
 
         public static void ResetAll()
