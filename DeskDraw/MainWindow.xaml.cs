@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -14,7 +15,7 @@ using System.Linq;
 
 namespace DeskDraw
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private enum ToolType { Brush, Rectangle, Selection }
 
@@ -70,6 +71,7 @@ namespace DeskDraw
 
         public MainWindow()
         {
+            DataContext = this;
             InitializeComponent();
             BrushSettings.ThicknessChanged += OnThicknessChanged;
             BrushSettings.ColorChanged += OnColorChanged;
@@ -116,7 +118,10 @@ namespace DeskDraw
 
         private void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
         {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         private void UpdateBrush()
         {
