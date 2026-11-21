@@ -125,6 +125,27 @@
                                        Margin="0,0,0,1" />
                         </Canvas>
                     </Border>
+                    <!-- Selection Tool -->
+                    <Border x:Name="SelectionIconBorder"
+                            Width="28" Height="28"
+                            Background="#33FFFFFF"
+                            CornerRadius="5"
+                            Cursor="Hand"
+                            ToolTip="Выделение (V)"
+                            MouseLeftButtonDown="SelectionTool_Click">
+                        <Canvas Width="16" Height="16"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                            <Rectangle Width="11" Height="11"
+                                       Stroke="#FFB74C"
+                                       StrokeThickness="1.2"
+                                       StrokeDashArray="2,1.5"
+                                       Fill="Transparent"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,0,1" />
+                        </Canvas>
+                    </Border>
                     <TextBlock x:Name="ToolNameText"
                                Text="Кисть"
                                FontSize="12"

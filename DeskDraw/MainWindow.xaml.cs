@@ -16,7 +16,7 @@ namespace DeskDraw
 {
     public partial class MainWindow : Window
     {
-        private enum ToolType { Brush, Rectangle }
+        private enum ToolType { Brush, Rectangle, Selection }
 
         private Screen _screen;
         private bool _isDrawing = false;
@@ -24,6 +24,9 @@ namespace DeskDraw
         private Point _lastPoint = new Point();
         private Point _rectangleStartPoint = new Point();
         private System.Windows.Shapes.Rectangle? _rectanglePreview = null;
+        private System.Windows.Shapes.Rectangle? _selectionPreview = null;
+        private Point _selectionStartPoint = new Point();
+        private List<Shape> _selectedShapes = new List<Shape>();
         private string _selectedHex = "#FF0000";
         private SolidColorBrush _currentBrush = Brushes.Red;
         private bool _isDraggingToolbar = false;
@@ -148,6 +151,11 @@ namespace DeskDraw
 
         private void SetTool(ToolType tool)
         {
+            if (_currentTool == ToolType.Selection && tool != ToolType.Selection)
+            {
+                ClearSelection();
+                ClearSelectionPreview();
+            }
             _currentTool = tool;
             UpdateToolIndicator();
         }
@@ -166,9 +174,21 @@ namespace DeskDraw
                     ? new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF))
                     : new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
             }
+            if (SelectionIconBorder != null)
+            {
+                SelectionIconBorder.Background = _currentTool == ToolType.Selection
+                    ? new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF))
+                    : new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
+            }
             if (ToolNameText != null)
             {
-                ToolNameText.Text = _currentTool == ToolType.Brush ? "Кисть" : "Прямоугольник";
+                ToolNameText.Text = _currentTool switch
+                {
+                    ToolType.Brush => "Кисть",
+                    ToolType.Rectangle => "Прямоугольник",
+                    ToolType.Selection => "Выделение",
+                    _ => "Кисть"
+                };
             }
         }
 
@@ -237,10 +257,22 @@ namespace DeskDraw
         {
             if (_isDraggingToolbar) return;
 
+            // If selection is active and user clicks elsewhere, clear selection
+            if (_currentTool == ToolType.Selection && _selectedShapes.Count > 0)
+            {
+                ClearSelection();
+                if (_selectionPreview != null)
+                {
+                    DrawCanvas.Children.Remove(_selectionPreview);
+                    _selectionPreview = null;
+                }
+            }
+
             _isDrawing = true;
             _lastPoint = e.GetPosition(DrawCanvas);
             _rectangleStartPoint = _lastPoint;
             _currentStrokeShapes.Clear();
+
             if (_currentTool == ToolType.Rectangle)
             {
                 _rectanglePreview = new System.Windows.Shapes.Rectangle
@@ -254,6 +286,21 @@ namespace DeskDraw
                 DrawCanvas.Children.Add(_rectanglePreview);
                 _currentStrokeShapes.Add(_rectanglePreview);
             }
+            else if (_currentTool == ToolType.Selection)
+            {
+                _selectionStartPoint = _lastPoint;
+                _selectionPreview = new System.Windows.Shapes.Rectangle
+                {
+                    Fill = new SolidColorBrush(Color.FromArgb(30, 255, 0, 255)),
+                    Stroke = new SolidColorBrush(Color.FromArgb(180, 255, 0, 255)),
+                    StrokeThickness = 1.5,
+                    StrokeDashArray = new System.Windows.Media.DoubleCollection { 3, 3 },
+                    RadiusX = 2,
+                    RadiusY = 2
+                };
+                DrawCanvas.Children.Add(_selectionPreview);
+            }
+
             DrawCanvas.CaptureMouse();
         }
 
@@ -281,6 +328,12 @@ namespace DeskDraw
         private void RectangleTool_Click(object sender, MouseButtonEventArgs e)
         {
             SetTool(ToolType.Rectangle);
+            e.Handled = true;
+        }
+
+        private void SelectionTool_Click(object sender, MouseButtonEventArgs e)
+        {
+            SetTool(ToolType.Selection);
             e.Handled = true;
         }
 
@@ -351,6 +404,20 @@ namespace DeskDraw
                 return;
             }
 
+            if (_currentTool == ToolType.Selection && _selectionPreview != null)
+            {
+                double x = Math.Min(_selectionStartPoint.X, currentPoint.X);
+                double y = Math.Min(_selectionStartPoint.Y, currentPoint.Y);
+                double width = Math.Abs(currentPoint.X - _selectionStartPoint.X);
+                double height = Math.Abs(currentPoint.Y - _selectionStartPoint.Y);
+
+                _selectionPreview.Width = width;
+                _selectionPreview.Height = height;
+                Canvas.SetLeft(_selectionPreview, x);
+                Canvas.SetTop(_selectionPreview, y);
+                return;
+            }
+
             var line = new Line
             {
                 X1 = _lastPoint.X,
@@ -398,6 +465,25 @@ namespace DeskDraw
                             _currentStrokeShapes.Add(dot);
                         }
                         _rectanglePreview = null;
+                    }
+                }
+                else if (_currentTool == ToolType.Selection)
+                {
+                    // Selection preview stays visible — don't remove it
+                    // Find shapes within selection rectangle
+                    double selX = Math.Min(_selectionStartPoint.X, e.GetPosition(DrawCanvas).X);
+                    double selY = Math.Min(_selectionStartPoint.Y, e.GetPosition(DrawCanvas).Y);
+                    double selW = Math.Abs(e.GetPosition(DrawCanvas).X - _selectionStartPoint.X);
+                    double selH = Math.Abs(e.GetPosition(DrawCanvas).Y - _selectionStartPoint.Y);
+
+                    Rect selectionRect = new Rect(selX, selY, selW, selH);
+
+                    foreach (Shape shape in DrawCanvas.Children.OfType<Shape>())
+                    {
+                        if (IsShapeInRect(shape, selectionRect))
+                        {
+                            SelectShape(shape);
+                        }
                     }
                 }
                 else
@@ -457,6 +543,147 @@ namespace DeskDraw
             if (RedoButtonBorder != null)
             {
                 RedoButtonBorder.Cursor = IsRedoEnabled ? System.Windows.Input.Cursors.Hand : System.Windows.Input.Cursors.Arrow;
+            }
+        }
+
+        private void ClearSelection()
+        {
+            foreach (var shape in _selectedShapes)
+            {
+                shape.Fill = null;
+                shape.Stroke = shape is Line ? _currentBrush : null;
+                shape.StrokeThickness = shape is Line ? BrushSettings.Thickness : 0;
+                shape.StrokeDashArray = null;
+            }
+            _selectedShapes.Clear();
+        }
+
+        private void SelectShape(Shape shape)
+        {
+            _selectedShapes.Add(shape);
+            shape.Fill = new SolidColorBrush(Color.FromArgb(40, 100, 200, 255));
+            if (shape is Line)
+            {
+                shape.Stroke = new SolidColorBrush(Color.FromArgb(200, 100, 200, 255));
+                shape.StrokeThickness = Math.Max(BrushSettings.Thickness + 2, 4);
+            }
+            else
+            {
+                shape.Stroke = new SolidColorBrush(Color.FromArgb(200, 100, 200, 255));
+                shape.StrokeThickness = 2;
+            }
+            shape.StrokeDashArray = new System.Windows.Media.DoubleCollection { 3, 3 };
+        }
+
+        private bool IsShapeInRect(Shape shape, Rect rect)
+        {
+            if (shape is System.Windows.Shapes.Rectangle rectShape)
+            {
+                double x = Canvas.GetLeft(rectShape);
+                double y = Canvas.GetTop(rectShape);
+                return new Rect(x, y, rectShape.Width, rectShape.Height).IntersectsWith(rect);
+            }
+
+            if (shape is Ellipse ellipse)
+            {
+                double left = ellipse.Margin.Left;
+                double top = ellipse.Margin.Top;
+                double width = ellipse.Width;
+                double height = ellipse.Height;
+                return new Rect(left, top, width, height).IntersectsWith(rect);
+            }
+
+            if (shape is Line line)
+            {
+                return rect.Contains(new Point(line.X1, line.Y1)) ||
+                       rect.Contains(new Point(line.X2, line.Y2)) ||
+                       LineIntersectsRect(line.X1, line.Y1, line.X2, line.Y2, rect);
+            }
+
+            return false;
+        }
+
+        private bool LineIntersectsRect(double x1, double y1, double x2, double y2, Rect rect)
+        {
+            // Check if line segment intersects with rectangle
+            // First check if line bounding box overlaps with rect
+            double minX = Math.Min(x1, x2);
+            double maxX = Math.Max(x1, x2);
+            double minY = Math.Min(y1, y2);
+            double maxY = Math.Max(y1, y2);
+
+            if (maxX < rect.X || minX > rect.Right || maxY < rect.Y || minY > rect.Bottom)
+                return false;
+
+            // Cohen-Sutherland style clipping
+            const int INSIDE = 0, LEFT = 1, RIGHT = 2, BOTTOM = 4, TOP = 8;
+
+            int GetOutCode(double x, double y)
+            {
+                int code = INSIDE;
+                if (x < rect.X) code |= LEFT;
+                else if (x > rect.Right) code |= RIGHT;
+                if (y > rect.Bottom) code |= BOTTOM;
+                else if (y < rect.Y) code |= TOP;
+                return code;
+            }
+
+            int outcodeOut = GetOutCode(x2, y2);
+            int outcodeIn = GetOutCode(x1, y1);
+
+            while (true)
+            {
+                if ((outcodeIn | outcodeOut) == 0) return true;
+                if ((outcodeIn & outcodeOut) != 0) return false;
+
+                double x = 0, y = 0;
+                int outcodeExt = outcodeOut != 0 ? outcodeOut : outcodeIn;
+
+                if ((outcodeExt & TOP) != 0)
+                {
+                    x = x1 + (x2 - x1) * (rect.Y - y1) / (y2 - y1);
+                    y = rect.Y;
+                }
+                else if ((outcodeExt & BOTTOM) != 0)
+                {
+                    x = x1 + (x2 - x1) * (rect.Bottom - y1) / (y2 - y1);
+                    y = rect.Bottom;
+                }
+                else if ((outcodeExt & RIGHT) != 0)
+                {
+                    y = y1 + (y2 - y1) * (rect.Right - x1) / (x2 - x1);
+                    x = rect.Right;
+                }
+                else if ((outcodeExt & LEFT) != 0)
+                {
+                    y = y1 + (y2 - y1) * (rect.X - x1) / (x2 - x1);
+                    x = rect.X;
+                }
+
+                if (outcodeExt == outcodeOut)
+                {
+                    x2 = x;
+                    y2 = y;
+                    outcodeOut = GetOutCode(x2, y2);
+                }
+                else
+                {
+                    x1 = x;
+                    y1 = y;
+                    outcodeIn = GetOutCode(x1, y1);
+                }
+            }
+        }
+
+        private void ClearSelectionPreview()
+        {
+            if (_selectionPreview != null)
+            {
+                if (DrawCanvas.Children.Contains(_selectionPreview))
+                {
+                    DrawCanvas.Children.Remove(_selectionPreview);
+                }
+                _selectionPreview = null;
             }
         }
 
@@ -531,6 +758,30 @@ namespace DeskDraw
                 return;
             }
 
+            // Escape: cancel selection or clear selection
+            if (e.Key == Key.Escape)
+            {
+                if (_currentTool == ToolType.Selection && _isDrawing && _selectionPreview != null)
+                {
+                    ClearSelectionPreview();
+                    _isDrawing = false;
+                    DrawCanvas.ReleaseMouseCapture();
+                    e.Handled = true;
+                    return;
+                }
+                if (_selectedShapes.Count > 0)
+                {
+                    ClearSelection();
+                    if (_selectionPreview != null)
+                    {
+                        DrawCanvas.Children.Remove(_selectionPreview);
+                        _selectionPreview = null;
+                    }
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             // Tools
             if (e.Key == Key.B)
             {
@@ -541,6 +792,12 @@ namespace DeskDraw
             if (e.Key == Key.R)
             {
                 SetTool(ToolType.Rectangle);
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.V)
+            {
+                SetTool(ToolType.Selection);
                 e.Handled = true;
                 return;
             }
