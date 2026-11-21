@@ -263,7 +263,7 @@ namespace DeskDraw
             if (_isDraggingToolbar) return;
 
             // If selection is active and user clicks elsewhere, clear selection
-            if (_currentTool == ToolType.Selection && _selectedShapes.Count > 0)
+            if (_currentTool == ToolType.Selection)
             {
                 ClearSelection();
                 if (_selectionPreview != null)
@@ -474,21 +474,10 @@ namespace DeskDraw
                 }
                 else if (_currentTool == ToolType.Selection)
                 {
-                    // Selection preview stays visible — don't remove it
-                    // Find shapes within selection rectangle
-                    double selX = Math.Min(_selectionStartPoint.X, e.GetPosition(DrawCanvas).X);
-                    double selY = Math.Min(_selectionStartPoint.Y, e.GetPosition(DrawCanvas).Y);
-                    double selW = Math.Abs(e.GetPosition(DrawCanvas).X - _selectionStartPoint.X);
-                    double selH = Math.Abs(e.GetPosition(DrawCanvas).Y - _selectionStartPoint.Y);
-
-                    Rect selectionRect = new Rect(selX, selY, selW, selH);
-
-                    foreach (Shape shape in DrawCanvas.Children.OfType<Shape>())
+                    if (_selectionPreview != null)
                     {
-                        if (IsShapeInRect(shape, selectionRect))
-                        {
-                            SelectShape(shape);
-                        }
+                        _selectionPreview.Fill = new SolidColorBrush(Color.FromArgb(30, 100, 200, 255));
+                        _selectionPreview.Stroke = new SolidColorBrush(Color.FromArgb(180, 100, 200, 255));
                     }
                 }
                 else
@@ -536,6 +525,23 @@ namespace DeskDraw
             DrawCanvas.ReleaseMouseCapture();
         }
 
+        private void DrawCanvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (_currentTool == ToolType.Selection)
+            {
+                if (_selectionPreview != null)
+                {
+                    DrawCanvas.Children.Remove(_selectionPreview);
+                    _selectionPreview = null;
+                }
+                if (_isDrawing)
+                {
+                    _isDrawing = false;
+                    DrawCanvas.ReleaseMouseCapture();
+                }
+            }
+        }
+
         private void UpdateButtonStates()
         {
             IsUndoEnabled = _undoStack.Count > 0;
@@ -561,123 +567,6 @@ namespace DeskDraw
                 shape.StrokeDashArray = null;
             }
             _selectedShapes.Clear();
-        }
-
-        private void SelectShape(Shape shape)
-        {
-            _selectedShapes.Add(shape);
-            shape.Fill = new SolidColorBrush(Color.FromArgb(40, 100, 200, 255));
-            if (shape is Line)
-            {
-                shape.Stroke = new SolidColorBrush(Color.FromArgb(200, 100, 200, 255));
-                shape.StrokeThickness = Math.Max(BrushSettings.Thickness + 2, 4);
-            }
-            else
-            {
-                shape.Stroke = new SolidColorBrush(Color.FromArgb(200, 100, 200, 255));
-                shape.StrokeThickness = 2;
-            }
-            shape.StrokeDashArray = new System.Windows.Media.DoubleCollection { 3, 3 };
-        }
-
-        private bool IsShapeInRect(Shape shape, Rect rect)
-        {
-            if (shape is System.Windows.Shapes.Rectangle rectShape)
-            {
-                double x = Canvas.GetLeft(rectShape);
-                double y = Canvas.GetTop(rectShape);
-                return new Rect(x, y, rectShape.Width, rectShape.Height).IntersectsWith(rect);
-            }
-
-            if (shape is Ellipse ellipse)
-            {
-                double left = ellipse.Margin.Left;
-                double top = ellipse.Margin.Top;
-                double width = ellipse.Width;
-                double height = ellipse.Height;
-                return new Rect(left, top, width, height).IntersectsWith(rect);
-            }
-
-            if (shape is Line line)
-            {
-                return rect.Contains(new Point(line.X1, line.Y1)) ||
-                       rect.Contains(new Point(line.X2, line.Y2)) ||
-                       LineIntersectsRect(line.X1, line.Y1, line.X2, line.Y2, rect);
-            }
-
-            return false;
-        }
-
-        private bool LineIntersectsRect(double x1, double y1, double x2, double y2, Rect rect)
-        {
-            // Check if line segment intersects with rectangle
-            // First check if line bounding box overlaps with rect
-            double minX = Math.Min(x1, x2);
-            double maxX = Math.Max(x1, x2);
-            double minY = Math.Min(y1, y2);
-            double maxY = Math.Max(y1, y2);
-
-            if (maxX < rect.X || minX > rect.Right || maxY < rect.Y || minY > rect.Bottom)
-                return false;
-
-            // Cohen-Sutherland style clipping
-            const int INSIDE = 0, LEFT = 1, RIGHT = 2, BOTTOM = 4, TOP = 8;
-
-            int GetOutCode(double x, double y)
-            {
-                int code = INSIDE;
-                if (x < rect.X) code |= LEFT;
-                else if (x > rect.Right) code |= RIGHT;
-                if (y > rect.Bottom) code |= BOTTOM;
-                else if (y < rect.Y) code |= TOP;
-                return code;
-            }
-
-            int outcodeOut = GetOutCode(x2, y2);
-            int outcodeIn = GetOutCode(x1, y1);
-
-            while (true)
-            {
-                if ((outcodeIn | outcodeOut) == 0) return true;
-                if ((outcodeIn & outcodeOut) != 0) return false;
-
-                double x = 0, y = 0;
-                int outcodeExt = outcodeOut != 0 ? outcodeOut : outcodeIn;
-
-                if ((outcodeExt & TOP) != 0)
-                {
-                    x = x1 + (x2 - x1) * (rect.Y - y1) / (y2 - y1);
-                    y = rect.Y;
-                }
-                else if ((outcodeExt & BOTTOM) != 0)
-                {
-                    x = x1 + (x2 - x1) * (rect.Bottom - y1) / (y2 - y1);
-                    y = rect.Bottom;
-                }
-                else if ((outcodeExt & RIGHT) != 0)
-                {
-                    y = y1 + (y2 - y1) * (rect.Right - x1) / (x2 - x1);
-                    x = rect.Right;
-                }
-                else if ((outcodeExt & LEFT) != 0)
-                {
-                    y = y1 + (y2 - y1) * (rect.X - x1) / (x2 - x1);
-                    x = rect.X;
-                }
-
-                if (outcodeExt == outcodeOut)
-                {
-                    x2 = x;
-                    y2 = y;
-                    outcodeOut = GetOutCode(x2, y2);
-                }
-                else
-                {
-                    x1 = x;
-                    y1 = y;
-                    outcodeIn = GetOutCode(x1, y1);
-                }
-            }
         }
 
         private void ClearSelectionPreview()
@@ -771,6 +660,12 @@ namespace DeskDraw
                     ClearSelectionPreview();
                     _isDrawing = false;
                     DrawCanvas.ReleaseMouseCapture();
+                    e.Handled = true;
+                    return;
+                }
+                if (_selectionPreview != null)
+                {
+                    ClearSelectionPreview();
                     e.Handled = true;
                     return;
                 }
@@ -920,13 +815,30 @@ namespace DeskDraw
                         ctx.DrawRectangle(Brushes.Black, null, new Rect(0, 0, pixelWidth, pixelHeight));
                     }
 
-                    // Рисунок поверх обоев
+                    // Рисунок поверх обоев — рендерим DrawCanvas без рамки выделения
                     RenderOptions.SetBitmapScalingMode(drawingVisual, BitmapScalingMode.HighQuality);
-                    var canvasBrush = new VisualBrush(DrawCanvas)
+                    
+                    // Временно убираем рамку выделения
+                    var selPreview = _selectionPreview;
+                    if (selPreview != null && DrawCanvas.Children.Contains(selPreview))
                     {
-                        Stretch = Stretch.None
-                    };
-                    ctx.DrawRectangle(canvasBrush, null, new Rect(0, 0, pixelWidth, pixelHeight));
+                        DrawCanvas.Children.Remove(selPreview);
+                    }
+                    
+                    // Рендерим DrawCanvas в битмап
+                    var canvasRender = new RenderTargetBitmap(
+                        pixelWidth, pixelHeight,
+                        96 * transform.M11, 96 * transform.M22,
+                        PixelFormats.Pbgra32);
+                    canvasRender.Render(DrawCanvas);
+                    
+                    // Возвращаем рамку обратно
+                    if (selPreview != null)
+                    {
+                        DrawCanvas.Children.Add(selPreview);
+                    }
+                    
+                    ctx.DrawImage(canvasRender, new Rect(0, 0, pixelWidth, pixelHeight));
                 }
 
                 renderTarget.Render(drawingVisual);

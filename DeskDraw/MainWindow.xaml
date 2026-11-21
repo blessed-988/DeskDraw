@@ -27,6 +27,7 @@
                 MouseLeftButtonDown="DrawCanvas_MouseLeftButtonDown"
                 MouseMove="DrawCanvas_MouseMove"
                 MouseLeftButtonUp="DrawCanvas_MouseLeftButtonUp"
+                MouseRightButtonDown="DrawCanvas_MouseRightButtonDown"
                 MouseLeave="DrawCanvas_MouseLeave" />
 
         <!-- Floating Toolbar -->
