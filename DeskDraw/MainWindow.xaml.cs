@@ -18,6 +18,16 @@ namespace DeskDraw
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private enum ToolType { Brush, Rectangle, Selection }
+        private enum ActionType { Stroke, SelectionCreated, SelectionDeleted }
+        private class UndoAction
+        {
+            public ActionType Type { get; set; }
+            public List<Shape>? Shapes { get; set; }
+            public double? RectX { get; set; }
+            public double? RectY { get; set; }
+            public double? RectWidth { get; set; }
+            public double? RectHeight { get; set; }
+        }
 
         private Screen _screen;
         private bool _isDrawing = false;
@@ -31,8 +41,8 @@ namespace DeskDraw
         private SolidColorBrush _currentBrush = Brushes.Red;
         private bool _isDraggingToolbar = false;
         private Point _toolbarDragStart = new Point();
-        private Stack<List<Shape>> _undoStack = new Stack<List<Shape>>();
-        private Stack<List<Shape>> _redoStack = new Stack<List<Shape>>();
+        private Stack<UndoAction> _undoStack = new Stack<UndoAction>();
+        private Stack<UndoAction> _redoStack = new Stack<UndoAction>();
         private List<Shape> _currentStrokeShapes = new List<Shape>();
         private bool _isUndoEnabled = false;
         private bool _isRedoEnabled = false;
@@ -157,7 +167,7 @@ namespace DeskDraw
         {
             if (_currentTool == ToolType.Selection && tool != ToolType.Selection)
             {
-                ClearSelectionPreview();
+                RemoveSelectionPreviewAndRecord();
             }
             _currentTool = tool;
             UpdateToolIndicator();
@@ -280,10 +290,7 @@ namespace DeskDraw
             }
             else if (_currentTool == ToolType.Selection)
             {
-                if (_selectionPreview != null)
-                {
-                    DrawCanvas.Children.Remove(_selectionPreview);
-                }
+                RemoveSelectionPreviewAndRecord();
                 _selectionStartPoint = _lastPoint;
                 _selectionPreview = new System.Windows.Shapes.Rectangle
                 {
@@ -294,6 +301,8 @@ namespace DeskDraw
                     RadiusX = 2,
                     RadiusY = 2
                 };
+                Canvas.SetLeft(_selectionPreview, _selectionStartPoint.X);
+                Canvas.SetTop(_selectionPreview, _selectionStartPoint.Y);
                 DrawCanvas.Children.Add(_selectionPreview);
             }
 
@@ -500,7 +509,23 @@ namespace DeskDraw
                 // Push completed stroke to undo stack
                 if (_currentStrokeShapes.Count > 0)
                 {
-                    _undoStack.Push(new List<Shape>(_currentStrokeShapes));
+                    _undoStack.Push(new UndoAction { Type = ActionType.Stroke, Shapes = new List<Shape>(_currentStrokeShapes) });
+                    _redoStack.Clear();
+                    UpdateButtonStates();
+                }
+
+                // Push selection creation to undo stack
+                if (_currentTool == ToolType.Selection && _selectionPreview != null)
+                {
+                    var sel = _selectionPreview;
+                    _undoStack.Push(new UndoAction
+                    {
+                        Type = ActionType.SelectionCreated,
+                        RectX = Canvas.GetLeft(sel),
+                        RectY = Canvas.GetTop(sel),
+                        RectWidth = sel.Width,
+                        RectHeight = sel.Height
+                    });
                     _redoStack.Clear();
                     UpdateButtonStates();
                 }
@@ -520,15 +545,17 @@ namespace DeskDraw
         {
             if (_currentTool == ToolType.Selection)
             {
-                if (_selectionPreview != null)
-                {
-                    DrawCanvas.Children.Remove(_selectionPreview);
-                    _selectionPreview = null;
-                }
                 if (_isDrawing)
                 {
+                    // Cancelling an in-progress selection rectangle — no undo record
+                    RemoveSelectionPreview();
                     _isDrawing = false;
                     DrawCanvas.ReleaseMouseCapture();
+                }
+                else
+                {
+                    // Removing a confirmed selection rectangle — record deletion
+                    RemoveSelectionPreviewAndRecord();
                 }
             }
         }
@@ -548,7 +575,7 @@ namespace DeskDraw
             }
         }
 
-        private void ClearSelectionPreview()
+        private void RemoveSelectionPreview()
         {
             if (_selectionPreview != null)
             {
@@ -560,25 +587,83 @@ namespace DeskDraw
             }
         }
 
+        private void RemoveSelectionPreviewAndRecord()
+        {
+            if (_selectionPreview == null) return;
+            var sel = _selectionPreview;
+            RemoveSelectionPreview();
+            
+            _undoStack.Push(new UndoAction
+            {
+                Type = ActionType.SelectionDeleted,
+                RectX = Canvas.GetLeft(sel),
+                RectY = Canvas.GetTop(sel),
+                RectWidth = sel.Width,
+                RectHeight = sel.Height
+            });
+            _redoStack.Clear();
+            UpdateButtonStates();
+        }
+
         private void Undo()
         {
             if (_undoStack.Count == 0) return;
 
-            var shapes = _undoStack.Pop();
-            var redoGroup = new List<Shape>();
+            var action = _undoStack.Pop();
+            var redoAction = new UndoAction { Type = action.Type };
 
-            foreach (var shape in shapes)
+            switch (action.Type)
             {
-                if (DrawCanvas.Children.Contains(shape))
-                {
-                    DrawCanvas.Children.Remove(shape);
-                    redoGroup.Add(shape);
-                }
+                case ActionType.Stroke:
+                    var redoShapes = new List<Shape>();
+                    foreach (var shape in action.Shapes!)
+                    {
+                        if (DrawCanvas.Children.Contains(shape))
+                        {
+                            DrawCanvas.Children.Remove(shape);
+                            redoShapes.Add(shape);
+                        }
+                    }
+                    redoAction.Shapes = redoShapes.Count > 0 ? redoShapes : null;
+                    break;
+
+                case ActionType.SelectionCreated:
+                    // Undo creation = delete the selection preview
+                    if (_selectionPreview != null)
+                    {
+                        RemoveSelectionPreview();
+                    }
+                    break;
+
+                case ActionType.SelectionDeleted:
+                    // Undo deletion = recreate the selection preview
+                    if (_selectionPreview == null && action.RectX.HasValue)
+                    {
+                        _selectionPreview = new System.Windows.Shapes.Rectangle
+                        {
+                            Fill = new SolidColorBrush(Color.FromArgb(30, 100, 200, 255)),
+                            Stroke = new SolidColorBrush(Color.FromArgb(180, 100, 200, 255)),
+                            StrokeThickness = 1.5,
+                            StrokeDashArray = new System.Windows.Media.DoubleCollection { 3, 3 },
+                            RadiusX = 2,
+                            RadiusY = 2,
+                            Width = action.RectWidth.Value,
+                            Height = action.RectHeight.Value
+                        };
+                        Canvas.SetLeft(_selectionPreview, action.RectX.Value);
+                        Canvas.SetTop(_selectionPreview, action.RectY.Value);
+                        DrawCanvas.Children.Add(_selectionPreview);
+                    }
+                    break;
             }
 
-            if (redoGroup.Count > 0)
+            if (action.Type == ActionType.Stroke && (redoAction.Shapes == null || redoAction.Shapes.Count > 0))
             {
-                _redoStack.Push(redoGroup);
+                _redoStack.Push(redoAction);
+            }
+            else if (action.Type != ActionType.Stroke)
+            {
+                _redoStack.Push(redoAction);
             }
 
             UpdateButtonStates();
@@ -588,18 +673,58 @@ namespace DeskDraw
         {
             if (_redoStack.Count == 0) return;
 
-            var shapes = _redoStack.Pop();
-            var undoGroup = new List<Shape>();
+            var action = _redoStack.Pop();
+            var undoAction = new UndoAction { Type = action.Type };
 
-            foreach (var shape in shapes)
+            switch (action.Type)
             {
-                DrawCanvas.Children.Add(shape);
-                undoGroup.Add(shape);
+                case ActionType.Stroke:
+                    var undoShapes = new List<Shape>();
+                    foreach (var shape in action.Shapes!)
+                    {
+                        DrawCanvas.Children.Add(shape);
+                        undoShapes.Add(shape);
+                    }
+                    undoAction.Shapes = undoShapes;
+                    break;
+
+                case ActionType.SelectionCreated:
+                    // Redo creation = recreate the selection preview
+                    if (_selectionPreview == null && action.RectX.HasValue)
+                    {
+                        _selectionPreview = new System.Windows.Shapes.Rectangle
+                        {
+                            Fill = new SolidColorBrush(Color.FromArgb(30, 100, 200, 255)),
+                            Stroke = new SolidColorBrush(Color.FromArgb(180, 100, 200, 255)),
+                            StrokeThickness = 1.5,
+                            StrokeDashArray = new System.Windows.Media.DoubleCollection { 3, 3 },
+                            RadiusX = 2,
+                            RadiusY = 2,
+                            Width = action.RectWidth.Value,
+                            Height = action.RectHeight.Value
+                        };
+                        Canvas.SetLeft(_selectionPreview, action.RectX.Value);
+                        Canvas.SetTop(_selectionPreview, action.RectY.Value);
+                        DrawCanvas.Children.Add(_selectionPreview);
+                    }
+                    break;
+
+                case ActionType.SelectionDeleted:
+                    // Redo deletion = delete the selection preview
+                    if (_selectionPreview != null)
+                    {
+                        RemoveSelectionPreview();
+                    }
+                    break;
             }
 
-            if (undoGroup.Count > 0)
+            if (action.Type == ActionType.Stroke && (undoAction.Shapes == null || undoAction.Shapes.Count > 0))
             {
-                _undoStack.Push(undoGroup);
+                _undoStack.Push(undoAction);
+            }
+            else if (action.Type != ActionType.Stroke)
+            {
+                _undoStack.Push(undoAction);
             }
 
             UpdateButtonStates();
@@ -634,9 +759,18 @@ namespace DeskDraw
             // Escape: cancel selection rectangle
             if (e.Key == Key.Escape && _currentTool == ToolType.Selection && _selectionPreview != null)
             {
-                ClearSelectionPreview();
-                _isDrawing = false;
-                DrawCanvas.ReleaseMouseCapture();
+                if (_isDrawing)
+                {
+                    // Cancelling an in-progress selection rectangle — no undo record
+                    RemoveSelectionPreview();
+                    _isDrawing = false;
+                    DrawCanvas.ReleaseMouseCapture();
+                }
+                else
+                {
+                    // Removing a confirmed selection rectangle — record deletion
+                    RemoveSelectionPreviewAndRecord();
+                }
                 e.Handled = true;
                 return;
             }
