@@ -27,7 +27,6 @@ namespace DeskDraw
         private System.Windows.Shapes.Rectangle? _rectanglePreview = null;
         private System.Windows.Shapes.Rectangle? _selectionPreview = null;
         private Point _selectionStartPoint = new Point();
-        private List<Shape> _selectedShapes = new List<Shape>();
         private string _selectedHex = "#FF0000";
         private SolidColorBrush _currentBrush = Brushes.Red;
         private bool _isDraggingToolbar = false;
@@ -158,7 +157,6 @@ namespace DeskDraw
         {
             if (_currentTool == ToolType.Selection && tool != ToolType.Selection)
             {
-                ClearSelection();
                 ClearSelectionPreview();
             }
             _currentTool = tool;
@@ -262,17 +260,6 @@ namespace DeskDraw
         {
             if (_isDraggingToolbar) return;
 
-            // If selection is active and user clicks elsewhere, clear selection
-            if (_currentTool == ToolType.Selection)
-            {
-                ClearSelection();
-                if (_selectionPreview != null)
-                {
-                    DrawCanvas.Children.Remove(_selectionPreview);
-                    _selectionPreview = null;
-                }
-            }
-
             _isDrawing = true;
             _lastPoint = e.GetPosition(DrawCanvas);
             _rectangleStartPoint = _lastPoint;
@@ -293,6 +280,10 @@ namespace DeskDraw
             }
             else if (_currentTool == ToolType.Selection)
             {
+                if (_selectionPreview != null)
+                {
+                    DrawCanvas.Children.Remove(_selectionPreview);
+                }
                 _selectionStartPoint = _lastPoint;
                 _selectionPreview = new System.Windows.Shapes.Rectangle
                 {
@@ -557,18 +548,6 @@ namespace DeskDraw
             }
         }
 
-        private void ClearSelection()
-        {
-            foreach (var shape in _selectedShapes)
-            {
-                shape.Fill = null;
-                shape.Stroke = shape is Line ? _currentBrush : null;
-                shape.StrokeThickness = shape is Line ? BrushSettings.Thickness : 0;
-                shape.StrokeDashArray = null;
-            }
-            _selectedShapes.Clear();
-        }
-
         private void ClearSelectionPreview()
         {
             if (_selectionPreview != null)
@@ -652,34 +631,14 @@ namespace DeskDraw
                 return;
             }
 
-            // Escape: cancel selection or clear selection
-            if (e.Key == Key.Escape)
+            // Escape: cancel selection rectangle
+            if (e.Key == Key.Escape && _currentTool == ToolType.Selection && _selectionPreview != null)
             {
-                if (_currentTool == ToolType.Selection && _isDrawing && _selectionPreview != null)
-                {
-                    ClearSelectionPreview();
-                    _isDrawing = false;
-                    DrawCanvas.ReleaseMouseCapture();
-                    e.Handled = true;
-                    return;
-                }
-                if (_selectionPreview != null)
-                {
-                    ClearSelectionPreview();
-                    e.Handled = true;
-                    return;
-                }
-                if (_selectedShapes.Count > 0)
-                {
-                    ClearSelection();
-                    if (_selectionPreview != null)
-                    {
-                        DrawCanvas.Children.Remove(_selectionPreview);
-                        _selectionPreview = null;
-                    }
-                    e.Handled = true;
-                    return;
-                }
+                ClearSelectionPreview();
+                _isDrawing = false;
+                DrawCanvas.ReleaseMouseCapture();
+                e.Handled = true;
+                return;
             }
 
             // Tools
